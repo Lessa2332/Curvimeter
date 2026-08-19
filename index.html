@@ -576,8 +576,8 @@
                 <div class="bottom-controls">
                     <div class="controls-row">
                         <button id="btn-activate-digital" class="btn btn--primary" aria-pressed="false">
-                            <span aria-hidden="true">📏</span>
-                            <span class="btn-label">Активувати курвіметр</span>
+                            <span aria-hidden="true">🧵</span>
+                            <span class="btn-label">Активувати нитку</span>
                         </button>
                     </div>
                     <div class="controls-row" id="drawing-controls-digital" style="display:none;">
@@ -585,7 +585,7 @@
                         <button id="btn-clear-digital" class="btn btn--danger btn--sm" aria-label="Очистити">🧹 Очистити</button>
                         <button id="btn-finish-digital" class="btn btn--primary btn--sm" aria-label="Завершити">✅ Завершити</button>
                     </div>
-                    <div class="hint-text" id="hint-digital">Натисніть «Активувати курвіметр», щоб почати вимірювання</div>
+                    <div class="hint-text" id="hint-digital">Натисніть «Активувати нитку» і ведіть пальцем по карті</div>
                 </div>
             </div>
         </div>
@@ -607,24 +607,25 @@
                         <input type="number" id="camera-scale-input" value="50000" min="1" step="1000" aria-label="Масштаб карти">
                     </div>
                     <div class="controls-row">
-                        <button id="btn-activate-camera" class="btn btn--primary" aria-pressed="false">
-                            <span aria-hidden="true">🎯</span>
-                            <span class="btn-label">Активувати курвіметр</span>
+                        <button id="btn-activate-thread" class="btn btn--primary" aria-pressed="false">
+                            <span aria-hidden="true">🧵</span>
+                            <span class="btn-label">Активувати нитку</span>
                         </button>
                     </div>
-                    <div class="controls-row" id="camera-active-controls" style="display:none;">
-                        <button id="btn-add-point-camera" class="btn" aria-label="Додати точку">
-                            <span aria-hidden="true">📍</span>
-                            <span class="btn-label">Додати точку</span>
+                    <div class="controls-row" id="thread-controls" style="display:none;">
+                        <button id="btn-pause-thread" class="btn btn--sm" aria-label="Пауза">
+                            <span aria-hidden="true">⏸️</span>
+                            <span class="btn-label">Пауза</span>
                         </button>
-                        <button id="btn-clear-camera" class="btn btn--danger btn--sm" aria-label="Очистити">
+                        <button id="btn-finish-thread" class="btn btn--primary btn--sm" aria-label="Завершити">
+                            <span aria-hidden="true">✅</span>
+                            <span class="btn-label">Завершити</span>
+                        </button>
+                        <button id="btn-clear-thread" class="btn btn--danger btn--sm" aria-label="Очистити">
                             <span aria-hidden="true">🧹</span>
                         </button>
-                        <button id="btn-finish-camera" class="btn btn--primary btn--sm" aria-label="Завершити">
-                            <span aria-hidden="true">✅</span>
-                        </button>
                     </div>
-                    <div class="hint-text" id="hint-camera">Натисніть «Активувати курвіметр» для початку вимірювання</div>
+                    <div class="hint-text" id="hint-camera">Торкніться карти і ведіть пальцем — нитка буде слідувати</div>
                 </div>
             </div>
         </div>
@@ -679,7 +680,14 @@
             points: [],
             totalLengthM: 0,
             cameraActive: false,
-            cameraPoints: [],
+            threadMode: false,
+            threadPoints: [],
+            threadSegments: [],
+            threadTotalLength: 0,
+            threadActive: false,
+            threadPaused: false,
+            threadStartPoint: null,
+            threadCurrentPoint: null,
             cameraScale: 50000,
             cameraStream: null,
         };
@@ -696,11 +704,11 @@
         const btnUndoDigital = document.getElementById('btn-undo-digital');
         const btnClearDigital = document.getElementById('btn-clear-digital');
         const btnFinishDigital = document.getElementById('btn-finish-digital');
-        const btnActivateCamera = document.getElementById('btn-activate-camera');
-        const cameraActiveControls = document.getElementById('camera-active-controls');
-        const btnAddPointCamera = document.getElementById('btn-add-point-camera');
-        const btnClearCamera = document.getElementById('btn-clear-camera');
-        const btnFinishCamera = document.getElementById('btn-finish-camera');
+        const btnActivateThread = document.getElementById('btn-activate-thread');
+        const threadControls = document.getElementById('thread-controls');
+        const btnPauseThread = document.getElementById('btn-pause-thread');
+        const btnFinishThread = document.getElementById('btn-finish-thread');
+        const btnClearThread = document.getElementById('btn-clear-thread');
         const hintDigital = document.getElementById('hint-digital');
         const hintCamera = document.getElementById('hint-camera');
         const cameraScaleInput = document.getElementById('camera-scale-input');
@@ -737,23 +745,10 @@
         }
 
         function formatLength(meters) {
-            if (state.units === 'imperial') {
-                const feet = meters * 3.28084;
-                if (feet < 5280) {
-                    return { value: Math.round(feet) + '', unit: 'фути', raw: meters };
-                }
-                return { value: (feet / 5280).toFixed(2), unit: 'милі', raw: meters };
-            } else if (state.units === 'nautical') {
-                if (meters < 1852) {
-                    return { value: Math.round(meters) + '', unit: 'м', raw: meters };
-                }
-                return { value: (meters / 1852).toFixed(2), unit: 'мор. милі', raw: meters };
-            } else {
-                if (meters < 1000) {
-                    return { value: Math.round(meters) + '', unit: 'м', raw: meters };
-                }
-                return { value: (meters / 1000).toFixed(2), unit: 'км', raw: meters };
+            if (meters < 1000) {
+                return { value: Math.round(meters) + '', unit: 'м', raw: meters };
             }
+            return { value: (meters / 1000).toFixed(2), unit: 'км', raw: meters };
         }
 
         function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -772,13 +767,6 @@
             const cmOnMap = px / pxPerCm;
             const cmOnGround = cmOnMap * scale;
             return cmOnGround / 100;
-        }
-
-        function calculateCameraDistancePx() {
-            if (state.cameraPoints.length < 2) return 0;
-            const p1 = state.cameraPoints[0];
-            const p2 = state.cameraPoints[state.cameraPoints.length - 1];
-            return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
         }
 
         // ===== Theme =====
@@ -819,34 +807,32 @@
             const outlineColor = state.theme === 'dark' ? '#0A0E17' : '#FFFFFF';
             const lw = 3;
 
-            if (state.points.length > 0) {
-                ctxDigital.strokeStyle = outlineColor;
-                ctxDigital.lineWidth = lw + 2;
-                ctxDigital.beginPath();
-                ctxDigital.moveTo(state.points[0].x, state.points[0].y);
-                for (let i = 1; i < state.points.length; i++) {
-                    ctxDigital.lineTo(state.points[i].x, state.points[i].y);
-                }
-                ctxDigital.stroke();
-
-                ctxDigital.strokeStyle = lineColor;
-                ctxDigital.lineWidth = lw;
-                ctxDigital.beginPath();
-                ctxDigital.moveTo(state.points[0].x, state.points[0].y);
-                for (let i = 1; i < state.points.length; i++) {
-                    ctxDigital.lineTo(state.points[i].x, state.points[i].y);
-                }
-                ctxDigital.stroke();
-
-                const last = state.points[state.points.length - 1];
-                ctxDigital.fillStyle = lineColor;
-                ctxDigital.strokeStyle = outlineColor;
-                ctxDigital.lineWidth = 1.5;
-                ctxDigital.beginPath();
-                ctxDigital.arc(last.x, last.y, lw + 2, 0, Math.PI * 2);
-                ctxDigital.fill();
-                ctxDigital.stroke();
+            ctxDigital.strokeStyle = outlineColor;
+            ctxDigital.lineWidth = lw + 2;
+            ctxDigital.beginPath();
+            ctxDigital.moveTo(state.points[0].x, state.points[0].y);
+            for (let i = 1; i < state.points.length; i++) {
+                ctxDigital.lineTo(state.points[i].x, state.points[i].y);
             }
+            ctxDigital.stroke();
+
+            ctxDigital.strokeStyle = lineColor;
+            ctxDigital.lineWidth = lw;
+            ctxDigital.beginPath();
+            ctxDigital.moveTo(state.points[0].x, state.points[0].y);
+            for (let i = 1; i < state.points.length; i++) {
+                ctxDigital.lineTo(state.points[i].x, state.points[i].y);
+            }
+            ctxDigital.stroke();
+
+            const last = state.points[state.points.length - 1];
+            ctxDigital.fillStyle = lineColor;
+            ctxDigital.strokeStyle = outlineColor;
+            ctxDigital.lineWidth = 1.5;
+            ctxDigital.beginPath();
+            ctxDigital.arc(last.x, last.y, lw + 2, 0, Math.PI * 2);
+            ctxDigital.fill();
+            ctxDigital.stroke();
         }
 
         function recalculateDigitalLength() {
@@ -870,7 +856,7 @@
             }
         }
 
-        // ===== Digital Tool =====
+        // ===== Digital Thread Tool =====
         function activateDigital() {
             if (state.digitalActive) return;
             state.digitalActive = true;
@@ -883,13 +869,13 @@
             map.scrollWheelZoom.disable();
             map.doubleClickZoom.disable();
             btnActivateDigital.setAttribute('aria-pressed', 'true');
-            btnActivateDigital.innerHTML = '<span aria-hidden="true">✅</span><span class="btn-label">Активовано</span>';
+            btnActivateDigital.innerHTML = '<span aria-hidden="true">✅</span><span class="btn-label">Нитка активна</span>';
             btnActivateDigital.classList.remove('btn--primary');
             btnActivateDigital.classList.add('btn--danger');
             drawingControlsDigital.style.display = 'flex';
-            hintDigital.textContent = 'Проведіть пальцем по карті для вимірювання';
+            hintDigital.textContent = '🧵 Ведіть пальцем по карті — нитка буде слідувати';
             updateDigitalResult('Готово до вимірювання');
-            announceSR('Курвіметр активовано. Проведіть пальцем по карті.');
+            announceSR('Нитка активована. Ведіть пальцем по карті.');
         }
 
         function deactivateDigital() {
@@ -902,17 +888,17 @@
             map.scrollWheelZoom.enable();
             map.doubleClickZoom.enable();
             btnActivateDigital.setAttribute('aria-pressed', 'false');
-            btnActivateDigital.innerHTML = '<span aria-hidden="true">📏</span><span class="btn-label">Активувати курвіметр</span>';
+            btnActivateDigital.innerHTML = '<span aria-hidden="true">🧵</span><span class="btn-label">Активувати нитку</span>';
             btnActivateDigital.classList.add('btn--primary');
             btnActivateDigital.classList.remove('btn--danger');
             drawingControlsDigital.style.display = 'none';
-            hintDigital.textContent = 'Натисніть «Активувати курвіметр», щоб почати вимірювання';
+            hintDigital.textContent = 'Натисніть «Активувати нитку» і ведіть пальцем по карті';
             if (state.points.length > 0) {
                 updateDigitalResult('Завершено');
             } else {
                 resultPanelDigital.classList.remove('visible');
             }
-            announceSR('Курвіметр деактивовано.');
+            announceSR('Нитка деактивована.');
         }
 
         function clearDigital() {
@@ -950,14 +936,12 @@
             redrawDigitalCanvas();
         }
 
-        // ===== Camera =====
+        // ===== Camera Thread Tool =====
         function updateCameraResult(status) {
-            const distPx = calculateCameraDistancePx();
-            const distM = pixelsToMeters(distPx, state.cameraScale);
-            const formatted = formatLength(distM);
+            const formatted = formatLength(state.threadTotalLength);
             resultValueCamera.innerHTML = formatted.value + ' <span class="result-unit">' + formatted.unit + '</span>';
-            resultStatusCamera.textContent = status || (state.cameraPoints.length >= 2 ? 'Завершено' : (state.cameraPoints.length === 1 ? 'Перша точка' : 'Готово'));
-            if (state.cameraPoints.length > 0) {
+            resultStatusCamera.textContent = status || (state.threadActive ? 'Вимірювання...' : (state.threadSegments.length > 0 ? 'Завершено' : 'Готово'));
+            if (state.threadTotalLength > 0 || state.threadActive) {
                 resultPanelCamera.classList.add('visible');
             } else {
                 resultPanelCamera.classList.remove('visible');
@@ -976,147 +960,267 @@
         function redrawCameraCanvas() {
             const rect = document.getElementById('camera-container').getBoundingClientRect();
             ctxCamera.clearRect(0, 0, rect.width, rect.height);
-            if (state.cameraPoints.length === 0) return;
+            if (state.threadSegments.length === 0) return;
 
-            const lineColor = state.highContrast ? '#FFD54F' : (state.theme === 'dark' ? '#00FF9F' : '#00897B');
-            const lw = 3;
+            const lineColor = state.highContrast ? '#FFD54F' : '#00FF9F';
+            const lw = 4;
 
-            if (state.cameraPoints.length >= 2) {
+            // Малюємо всі сегменти нитки
+            state.threadSegments.forEach((segment, index) => {
+                if (segment.points.length < 2) return;
+                
+                const alpha = 1 - (index * 0.1);
                 ctxCamera.strokeStyle = lineColor;
+                ctxCamera.globalAlpha = Math.max(alpha, 0.3);
                 ctxCamera.lineWidth = lw;
+                ctxCamera.lineCap = 'round';
+                ctxCamera.lineJoin = 'round';
+                
                 ctxCamera.beginPath();
-                ctxCamera.moveTo(state.cameraPoints[0].x, state.cameraPoints[0].y);
-                for (let i = 1; i < state.cameraPoints.length; i++) {
-                    ctxCamera.lineTo(state.cameraPoints[i].x, state.cameraPoints[i].y);
+                ctxCamera.moveTo(segment.points[0].x, segment.points[0].y);
+                for (let i = 1; i < segment.points.length; i++) {
+                    ctxCamera.lineTo(segment.points[i].x, segment.points[i].y);
                 }
                 ctxCamera.stroke();
-            }
+            });
 
-            for (const pt of state.cameraPoints) {
-                ctxCamera.fillStyle = lineColor;
+            // Малюємо точки з'єднання
+            state.threadSegments.forEach((segment, index) => {
+                if (index > 0 && segment.continuedFrom !== undefined) {
+                    const startPoint = segment.points[0];
+                    ctxCamera.globalAlpha = 1;
+                    ctxCamera.fillStyle = '#FFD54F';
+                    ctxCamera.beginPath();
+                    ctxCamera.arc(startPoint.x, startPoint.y, 6, 0, Math.PI * 2);
+                    ctxCamera.fill();
+                    
+                    // Пунктирне коло
+                    ctxCamera.strokeStyle = '#FFD54F';
+                    ctxCamera.lineWidth = 2;
+                    ctxCamera.setLineDash([5, 5]);
+                    ctxCamera.beginPath();
+                    ctxCamera.arc(startPoint.x, startPoint.y, 10, 0, Math.PI * 2);
+                    ctxCamera.stroke();
+                    ctxCamera.setLineDash([]);
+                }
+            });
+
+            // Малюємо кінчик нитки
+            if (state.threadCurrentPoint && state.threadActive) {
+                ctxCamera.globalAlpha = 1;
+                ctxCamera.fillStyle = '#FFFFFF';
+                ctxCamera.strokeStyle = lineColor;
+                ctxCamera.lineWidth = 2;
                 ctxCamera.beginPath();
-                ctxCamera.arc(pt.x, pt.y, lw + 3, 0, Math.PI * 2);
+                ctxCamera.arc(state.threadCurrentPoint.x, state.threadCurrentPoint.y, 8, 0, Math.PI * 2);
                 ctxCamera.fill();
-                ctxCamera.strokeStyle = '#FFFFFF';
-                ctxCamera.lineWidth = 1.5;
                 ctxCamera.stroke();
             }
+            
+            ctxCamera.globalAlpha = 1;
         }
 
-        function activateCameraCurvimeter() {
-            if (state.cameraActive) return;
-            if (!state.cameraStream) {
-                alert('Камера не запущена. Переключіться на вкладку "Фізична карта" знову.');
-                return;
-            }
-            state.cameraActive = true;
-            state.cameraPoints = [];
-            btnActivateCamera.setAttribute('aria-pressed', 'true');
-            btnActivateCamera.innerHTML = '<span aria-hidden="true">✅</span><span class="btn-label">Активовано</span>';
-            btnActivateCamera.classList.remove('btn--primary');
-            btnActivateCamera.classList.add('btn--danger');
-            cameraActiveControls.style.display = 'flex';
-            hintCamera.textContent = 'Натисніть на карту або кнопку «Додати точку» для встановлення першої точки';
-            updateCameraResult('Активовано');
-            redrawCameraCanvas();
-            announceSR('Курвіметр активовано. Встановіть першу точку.');
-            if (state.haptic && navigator.vibrate) navigator.vibrate(30);
+        function activateThreadMode() {
+            if (state.threadMode) return;
+            state.threadMode = true;
+            state.threadSegments = [];
+            state.threadTotalLength = 0;
+            state.threadActive = false;
+            state.threadPaused = false;
+            
+            btnActivateThread.setAttribute('aria-pressed', 'true');
+            btnActivateThread.innerHTML = '<span aria-hidden="true">✅</span><span class="btn-label">Нитка активна</span>';
+            btnActivateThread.classList.remove('btn--primary');
+            btnActivateThread.classList.add('btn--danger');
+            threadControls.style.display = 'flex';
+            btnPauseThread.disabled = true;
+            btnFinishThread.disabled = true;
+            
+            hintCamera.textContent = '🧵 Торкніться карти і ведіть пальцем — нитка буде слідувати';
+            updateCameraResult('Готово до вимірювання');
+            announceSR('Режим нитки активовано. Торкніться карти для початку.');
         }
 
-        function deactivateCameraCurvimeter() {
-            if (!state.cameraActive) return;
-            state.cameraActive = false;
-            btnActivateCamera.setAttribute('aria-pressed', 'false');
-            btnActivateCamera.innerHTML = '<span aria-hidden="true">🎯</span><span class="btn-label">Активувати курвіметр</span>';
-            btnActivateCamera.classList.add('btn--primary');
-            btnActivateCamera.classList.remove('btn--danger');
-            cameraActiveControls.style.display = 'none';
-            hintCamera.textContent = 'Натисніть «Активувати курвіметр» для початку вимірювання';
-            if (state.cameraPoints.length > 0) {
-                updateCameraResult('Завершено');
-            } else {
-                updateCameraResult('Готово');
-            }
-            announceSR('Курвіметр деактивовано.');
+        function deactivateThreadMode() {
+            if (!state.threadMode) return;
+            state.threadMode = false;
+            state.threadActive = false;
+            state.threadPaused = false;
+            
+            btnActivateThread.setAttribute('aria-pressed', 'false');
+            btnActivateThread.innerHTML = '<span aria-hidden="true">🧵</span><span class="btn-label">Активувати нитку</span>';
+            btnActivateThread.classList.add('btn--primary');
+            btnActivateThread.classList.remove('btn--danger');
+            threadControls.style.display = 'none';
+            
+            hintCamera.textContent = 'Торкніться карти і ведіть пальцем — нитка буде слідувати';
+            announceSR('Режим нитки деактивовано.');
         }
 
-        function addCameraPoint() {
-            if (!state.cameraActive) {
-                alert('Спочатку активуйте курвіметр!');
-                return;
+        function startThread(x, y) {
+            if (!state.threadMode) return;
+            
+            state.threadActive = true;
+            state.threadPaused = false;
+            state.threadStartPoint = { x, y };
+            state.threadCurrentPoint = { x, y };
+            
+            state.threadSegments.push({
+                start: { x, y },
+                points: [{ x, y }],
+                lengthPx: 0,
+                lengthM: 0
+            });
+            
+            btnPauseThread.disabled = false;
+            btnFinishThread.disabled = false;
+            
+            hintCamera.textContent = '🧵 Нитка почалась! Ведіть пальцем по карті.';
+            announceSR('Нитка почалась. Ведіть пальцем.');
+            
+            if (state.haptic && navigator.vibrate) navigator.vibrate(15);
+        }
+
+        function continueThread(x, y) {
+            if (!state.threadActive || state.threadPaused) return;
+            
+            const lastPoint = state.threadSegments[state.threadSegments.length - 1].points[
+                state.threadSegments[state.threadSegments.length - 1].points.length - 1
+            ];
+            const distPx = Math.sqrt((x - lastPoint.x) ** 2 + (y - lastPoint.y) ** 2);
+            
+            if (distPx > 2) {
+                const currentSegment = state.threadSegments[state.threadSegments.length - 1];
+                currentSegment.points.push({ x, y });
+                currentSegment.lengthPx += distPx;
+                currentSegment.lengthM = pixelsToMeters(currentSegment.lengthPx, state.cameraScale);
+                
+                state.threadCurrentPoint = { x, y };
+                
+                recalculateThreadLength();
+                updateCameraResult('Вимірювання...');
+                redrawCameraCanvas();
+                
+                if (state.haptic && navigator.vibrate && distPx > 5) {
+                    navigator.vibrate(2);
+                }
             }
-            if (state.cameraPoints.length >= 2) {
-                state.cameraPoints = [];
-            }
-            const rect = canvasCamera.getBoundingClientRect();
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            state.cameraPoints.push({ x: centerX, y: centerY });
-            if (state.cameraPoints.length === 1) {
-                hintCamera.textContent = 'Перша точка встановлена. Натисніть «Додати точку» знову для другої точки.';
-                updateCameraResult('Перша точка');
-                announceSR('Перша точка встановлена.');
-            } else {
-                hintCamera.textContent = 'Вимірювання завершено!';
-                updateCameraResult('Завершено');
-                const distPx = calculateCameraDistancePx();
-                const distM = pixelsToMeters(distPx, state.cameraScale);
-                const formatted = formatLength(distM);
-                announceSR('Відстань: ' + formatted.value + ' ' + formatted.unit);
-            }
+        }
+
+        function pauseThread() {
+            if (!state.threadActive || state.threadPaused) return;
+            
+            state.threadPaused = true;
+            
+            hintCamera.textContent = '⏸️ Нитка на паузі. Перемістіть карту, потім торкніться для продовження.';
+            announceSR('Нитка на паузі. Перемістіть карту і торкніться для продовження.');
+            
+            btnPauseThread.innerHTML = '<span aria-hidden="true">▶️</span><span class="btn-label">Продовжити</span>';
+        }
+
+        function resumeThread(x, y) {
+            if (!state.threadActive || !state.threadPaused) return;
+            
+            state.threadPaused = false;
+            
+            state.threadSegments.push({
+                start: { x, y },
+                points: [{ x, y }],
+                lengthPx: 0,
+                lengthM: 0,
+                continuedFrom: state.threadSegments.length - 1
+            });
+            
+            state.threadCurrentPoint = { x, y };
+            
+            hintCamera.textContent = '🧵 Нитка продовжена! Ведіть пальцем далі.';
+            announceSR('Нитка продовжена.');
+            
+            btnPauseThread.innerHTML = '<span aria-hidden="true">⏸️</span><span class="btn-label">Пауза</span>';
+            
             redrawCameraCanvas();
             if (state.haptic && navigator.vibrate) navigator.vibrate(20);
         }
 
-        function clearCamera() {
-            state.cameraPoints = [];
+        function finishThread() {
+            if (!state.threadActive) return;
+            
+            state.threadActive = false;
+            
+            recalculateThreadLength();
+            
+            const formatted = formatLength(state.threadTotalLength);
+            
+            hintCamera.textContent = '✅ Нитка завершена! Довжина: ' + formatted.value + ' ' + formatted.unit;
+            announceSR('Вимірювання завершено. Загальна довжина: ' + formatted.value + ' ' + formatted.unit);
+            
+            updateCameraResult('Завершено');
+            
+            btnPauseThread.disabled = true;
+            btnFinishThread.disabled = true;
+            
+            if (state.haptic && navigator.vibrate) navigator.vibrate([30, 50, 30]);
+            
+            redrawCameraCanvas();
+        }
+
+        function clearThread() {
+            state.threadSegments = [];
+            state.threadTotalLength = 0;
+            state.threadActive = false;
+            state.threadPaused = false;
+            
             updateCameraResult('Готово');
             redrawCameraCanvas();
-            hintCamera.textContent = 'Натисніть «Додати точку» для встановлення першої точки';
-            announceSR('Вимірювання очищено.');
+            
+            btnPauseThread.disabled = true;
+            btnFinishThread.disabled = true;
+            btnPauseThread.innerHTML = '<span aria-hidden="true">⏸️</span><span class="btn-label">Пауза</span>';
+            
+            hintCamera.textContent = 'Торкніться карти і ведіть пальцем — нитка буде слідувати';
+            announceSR('Нитку очищено.');
         }
 
-        function finishCamera() {
-            if (state.cameraPoints.length < 2) {
-                alert('Потрібно мінімум 2 точки для вимірювання!');
-                return;
-            }
-            const distPx = calculateCameraDistancePx();
-            const distM = pixelsToMeters(distPx, state.cameraScale);
-            const formatted = formatLength(distM);
-            updateCameraResult('Завершено');
-            hintCamera.textContent = 'Вимірювання завершено. Відстань: ' + formatted.value + ' ' + formatted.unit;
-            announceSR('Вимірювання завершено. Відстань: ' + formatted.value + ' ' + formatted.unit);
-            if (state.haptic && navigator.vibrate) navigator.vibrate([30, 50, 30]);
+        function recalculateThreadLength() {
+            state.threadTotalLength = 0;
+            state.threadSegments.forEach(segment => {
+                state.threadTotalLength += segment.lengthM;
+            });
         }
 
-        function handleCameraCanvasClick(e) {
-            if (!state.cameraActive) {
-                alert('Спочатку активуйте курвіметр!');
-                return;
-            }
+        function handleCameraCanvasPointerDown(e) {
+            if (!state.threadMode) return;
             e.preventDefault();
+            
             const rect = canvasCamera.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            if (state.cameraPoints.length >= 2) {
-                state.cameraPoints = [];
+            
+            if (!state.threadActive) {
+                startThread(x, y);
+            } else if (state.threadPaused) {
+                resumeThread(x, y);
             }
-            state.cameraPoints.push({ x, y });
-            if (state.cameraPoints.length === 1) {
-                hintCamera.textContent = 'Перша точка встановлена. Натисніть на другу точку.';
-                updateCameraResult('Перша точка');
-                announceSR('Перша точка встановлена.');
-            } else {
-                hintCamera.textContent = 'Вимірювання завершено!';
-                updateCameraResult('Завершено');
-                const distPx = calculateCameraDistancePx();
-                const distM = pixelsToMeters(distPx, state.cameraScale);
-                const formatted = formatLength(distM);
-                announceSR('Відстань: ' + formatted.value + ' ' + formatted.unit);
+            
+            canvasCamera.setPointerCapture(e.pointerId);
+        }
+
+        function handleCameraCanvasPointerMove(e) {
+            if (!state.threadMode || !state.threadActive || state.threadPaused) return;
+            e.preventDefault();
+            
+            const rect = canvasCamera.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            continueThread(x, y);
+        }
+
+        function handleCameraCanvasPointerUp(e) {
+            if (!state.threadMode) return;
+            if (canvasCamera.hasPointerCapture(e.pointerId)) {
+                canvasCamera.releasePointerCapture(e.pointerId);
             }
-            redrawCameraCanvas();
-            if (state.haptic && navigator.vibrate) navigator.vibrate(20);
         }
 
         async function startCamera() {
@@ -1160,11 +1264,13 @@
                 startCamera();
                 resizeCameraCanvas();
                 updateCameraResult('Готово');
-                deactivateCameraCurvimeter();
+                if (state.threadMode) {
+                    deactivateThreadMode();
+                }
             } else {
                 stopCamera();
-                if (state.cameraActive) {
-                    deactivateCameraCurvimeter();
+                if (state.threadMode) {
+                    deactivateThreadMode();
                 }
                 map.invalidateSize();
                 resizeDigitalCanvas();
@@ -1215,16 +1321,22 @@
         btnClearDigital.addEventListener('click', clearDigital);
         btnFinishDigital.addEventListener('click', finishDigital);
 
-        btnActivateCamera.addEventListener('click', () => {
-            if (state.cameraActive) {
-                deactivateCameraCurvimeter();
+        btnActivateThread.addEventListener('click', () => {
+            if (state.threadMode) {
+                deactivateThreadMode();
             } else {
-                activateCameraCurvimeter();
+                activateThreadMode();
             }
         });
-        btnAddPointCamera.addEventListener('click', addCameraPoint);
-        btnClearCamera.addEventListener('click', clearCamera);
-        btnFinishCamera.addEventListener('click', finishCamera);
+        btnPauseThread.addEventListener('click', () => {
+            if (state.threadPaused) {
+                hintCamera.textContent = 'Торкніться карти в місці продовження нитки.';
+            } else {
+                pauseThread();
+            }
+        });
+        btnFinishThread.addEventListener('click', finishThread);
+        btnClearThread.addEventListener('click', clearThread);
 
         btnTheme.addEventListener('click', cycleTheme);
 
@@ -1245,7 +1357,8 @@
 
         cameraScaleInput.addEventListener('input', () => {
             state.cameraScale = parseInt(cameraScaleInput.value, 10) || 50000;
-            if (state.cameraPoints.length >= 2) {
+            if (state.threadSegments.length > 0) {
+                recalculateThreadLength();
                 updateCameraResult('Завершено');
             }
         });
@@ -1304,8 +1417,11 @@
             }
         });
 
-        // Camera canvas pointer events
-        canvasCamera.addEventListener('pointerdown', handleCameraCanvasClick);
+        // Camera canvas pointer events (thread mode)
+        canvasCamera.addEventListener('pointerdown', handleCameraCanvasPointerDown);
+        canvasCamera.addEventListener('pointermove', handleCameraCanvasPointerMove);
+        canvasCamera.addEventListener('pointerup', handleCameraCanvasPointerUp);
+        canvasCamera.addEventListener('pointercancel', handleCameraCanvasPointerUp);
         canvasCamera.addEventListener('contextmenu', (e) => e.preventDefault());
 
         // Resize observers
@@ -1341,6 +1457,8 @@
             map.invalidateSize();
             updateDigitalResult('Готово');
             updateCameraResult('Готово');
+            btnPauseThread.disabled = true;
+            btnFinishThread.disabled = true;
             announceSR('Курвіметр завантажено. Виберіть режим роботи.');
         }
 
