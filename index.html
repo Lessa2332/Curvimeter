@@ -3,25 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0A0E17" id="theme-color-meta">
-    <meta name="description" content="Курвіметр PRO — вимірювання на цифрових і фізичних картах">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Курвіметр PRO">
-    <title>Курвіметр PRO</title>
+    <meta name="theme-color" content="#0A0E17" id="theme-color-meta">
+    <meta name="description" content="Курвіметр — цифровий симулятор вимірювання відстаней на карті">
+    <title>Курвіметр · Мобільний вимірювач</title>
 
-    <!-- Leaflet CSS -->
+    <!-- Leaflet CSS/JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         :root {
             --bg: #0A0E17;
-            --bg-gradient: radial-gradient(circle at 20% 20%, #101826 0%, #0A0E17 70%);
-            --surface: rgba(20, 30, 40, 0.75);
-            --surface-glass: rgba(20, 30, 40, 0.55);
-            --surface-hover: rgba(30, 45, 60, 0.8);
+            --surface: rgba(20, 30, 40, 0.85);
+            --surface-glass: rgba(20, 30, 40, 0.6);
             --text: #E0E8F0;
             --text-secondary: #A0B0C0;
             --text-muted: #6B7A8A;
@@ -31,28 +27,30 @@
             --primary-glow: rgba(0, 255, 159, 0.35);
             --accent: #00D4FF;
             --danger: #FF4D6A;
+            --warning: #FFB74D;
             --shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 255, 159, 0.1);
-            --radius: 12px;
-            --radius-sm: 8px;
-            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+            --radius: 16px;
+            --radius-sm: 10px;
             --header-height: 56px;
+            --font-stack: 'SF Pro Display', 'Segoe UI', system-ui, -apple-system, 'Roboto', sans-serif;
+            --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         [data-theme="light"] {
-            --bg: #F5F7FA;
-            --bg-gradient: linear-gradient(135deg, #F5F7FA 0%, #E8EEF4 100%);
+            --bg: #E8EEF4;
             --surface: rgba(255, 255, 255, 0.85);
-            --surface-glass: rgba(255, 255, 255, 0.7);
-            --surface-hover: rgba(240, 245, 250, 0.95);
+            --surface-glass: rgba(255, 255, 255, 0.6);
             --text: #1A2B3C;
             --text-secondary: #3A4A5A;
             --text-muted: #6B7A8A;
-            --border: rgba(60, 80, 100, 0.15);
+            --border: rgba(60, 80, 100, 0.2);
             --primary: #00897B;
             --primary-hover: #00695C;
+            --primary-glow: rgba(0, 137, 123, 0.25);
             --accent: #0288D1;
             --danger: #D32F2F;
-            --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            --warning: #F57C00;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         * {
@@ -61,23 +59,24 @@
             padding: 0;
         }
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
+        html {
+            font-size: 16px;
             -webkit-text-size-adjust: 100%;
             -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
         }
 
         body {
-            display: flex;
-            flex-direction: column;
+            font-family: var(--font-stack);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
             overflow: hidden;
             height: 100dvh;
-            background-image: var(--bg-gradient);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s ease, color 0.3s ease;
+            touch-action: manipulation;
         }
 
         .skip-link {
@@ -87,11 +86,11 @@
             z-index: 10000;
             background: var(--primary);
             color: #0A0E17;
-            padding: 10px 16px;
+            padding: 10px 18px;
             border-radius: var(--radius-sm);
             text-decoration: none;
-            font-weight: 600;
-            font-size: 0.85rem;
+            font-weight: 700;
+            transition: top 0.2s ease;
         }
         .skip-link:focus {
             top: 8px;
@@ -101,508 +100,375 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 12px;
+            padding: 0 16px;
             height: var(--header-height);
             background: var(--surface-glass);
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
-            z-index: 100;
             flex-shrink: 0;
+            z-index: 500;
         }
-
-        .app-title {
-            font-weight: 700;
-            font-size: 1rem;
-            letter-spacing: 0.03em;
+        .app-header .logo {
             display: flex;
             align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+        .app-header .logo svg {
+            width: 28px;
+            height: 28px;
+            fill: var(--primary);
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             gap: 8px;
+            min-height: 44px;
+            min-width: 44px;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--surface-glass);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            color: var(--text);
+            transition: all var(--transition);
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            flex-shrink: 0;
+            outline: none;
+        }
+        .btn:hover {
+            background: var(--surface);
+            border-color: var(--primary);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+        .btn:focus-visible {
+            box-shadow: 0 0 0 3px var(--accent);
+        }
+        .btn--primary {
+            background: var(--primary);
+            color: #0A0E17;
+            border-color: transparent;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+        .btn--primary:hover {
+            background: var(--primary-hover);
+        }
+        .btn--danger {
+            background: rgba(255, 77, 106, 0.15);
+            color: var(--danger);
+            border-color: rgba(255, 77, 106, 0.4);
+        }
+        .btn--sm {
+            min-height: 36px;
+            min-width: 36px;
+            padding: 6px 12px;
+            font-size: 0.82rem;
+        }
+        .btn--icon {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+            font-size: 1.3rem;
+            border-radius: 50%;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .main-container {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
         }
 
         .mode-tabs {
             display: flex;
             gap: 4px;
-            flex: 1;
-            margin: 0 16px;
-            justify-content: center;
-        }
-
-        .mode-tab {
-            padding: 6px 12px;
-            border: 1px solid var(--border);
             background: var(--surface-glass);
-            color: var(--text-secondary);
             border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 0.8rem;
+            padding: 4px;
+            margin: 8px 16px;
+            border: 1px solid var(--border);
+        }
+        .mode-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            text-align: center;
             font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
             transition: all var(--transition);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            min-height: 32px;
-            -webkit-tap-highlight-color: transparent;
+            font-family: inherit;
         }
-
-        .mode-tab:active {
-            transform: scale(0.95);
-        }
-
         .mode-tab.active {
             background: var(--primary);
             color: #0A0E17;
-            border-color: var(--primary);
-            box-shadow: 0 0 12px rgba(0, 255, 159, 0.3);
+            box-shadow: 0 0 10px var(--primary-glow);
         }
-
-        .header-actions {
-            display: flex;
-            gap: 4px;
-        }
-
-        .btn-icon {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--border);
-            background: var(--surface-glass);
+        .mode-tab:hover:not(.active) {
             color: var(--text);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: all var(--transition);
-            -webkit-tap-highlight-color: transparent;
-            flex-shrink: 0;
+            background: var(--surface);
         }
 
-        .btn-icon:active {
-            transform: scale(0.9);
-        }
-
-        .btn-icon:hover {
-            background: var(--surface-hover);
-            border-color: var(--primary);
-        }
-
-        .content {
+        .view-container {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+            min-height: 0;
             position: relative;
-        }
-
-        .mode-content {
             display: none;
-            flex: 1;
-            overflow: hidden;
-            flex-direction: column;
         }
-
-        .mode-content.active {
+        .view-container.active {
             display: flex;
         }
 
-        /* ===== DIGITAL MAP MODE ===== */
-        #map-container {
-            flex: 1;
-            overflow: hidden;
+        .map-area {
             position: relative;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            background: #0F1520;
         }
-
         #map {
-            height: 100%;
-            width: 100%;
-        }
-
-        .leaflet-container {
-            background: var(--bg);
-            font-family: inherit;
-        }
-
-        .map-canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 50;
-            pointer-events: none;
+            background: #0F1520;
         }
-
-        .digital-controls {
+        #drawing-canvas {
             position: absolute;
-            bottom: 16px;
-            left: 16px;
-            right: 16px;
-            z-index: 60;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: center;
+            top: 0;
+            left: 0;
+            z-index: 500;
+            pointer-events: none;
+            touch-action: none;
+            cursor: crosshair;
         }
-
-        .btn {
-            padding: 10px 16px;
-            min-height: 44px;
-            border: 1px solid var(--border);
-            background: var(--surface-glass);
-            color: var(--text);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
-            backdrop-filter: blur(8px);
-            transition: all var(--transition);
-            -webkit-tap-highlight-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .btn:active {
-            transform: scale(0.95);
-        }
-
-        .btn:hover {
-            background: var(--surface-hover);
-            border-color: var(--primary);
-        }
-
-        .btn.primary {
-            background: var(--primary);
-            color: #0A0E17;
-            border-color: var(--primary);
-        }
-
-        .btn.danger {
-            background: rgba(255, 77, 106, 0.3);
-            border-color: var(--danger);
-            color: var(--danger);
-        }
-
-        /* ===== CAMERA MODE ===== */
-        .camera-mode {
-            flex-direction: column;
+        #drawing-canvas.active {
+            pointer-events: auto;
         }
 
         .camera-container {
             flex: 1;
+            min-height: 0;
             position: relative;
             overflow: hidden;
             background: #000;
         }
-
-        #camera-feed {
+        #camera-video {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            display: block;
-        }
-
-        .camera-overlay {
             position: absolute;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 40;
-            pointer-events: none;
         }
-
-        .crosshair {
-            width: 60px;
-            height: 60px;
-            border: 2px solid var(--primary);
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(0, 255, 159, 0.1) 0%, transparent 70%);
-            box-shadow: 0 0 20px rgba(0, 255, 159, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        .crosshair::before,
-        .crosshair::after {
-            content: '';
+        #camera-canvas {
             position: absolute;
-            background: var(--primary);
-        }
-
-        .crosshair::before {
-            width: 20px;
-            height: 2px;
-        }
-
-        .crosshair::after {
-            width: 2px;
-            height: 20px;
-        }
-
-        .camera-controls {
-            padding: 12px;
-            background: var(--surface-glass);
-            backdrop-filter: blur(8px);
-            border-top: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .camera-controls-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .scale-input-group {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--surface);
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .scale-input-group label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            white-space: nowrap;
-        }
-
-        .scale-input-group input {
-            flex: 1;
-            border: none;
-            background: transparent;
-            color: var(--text);
-            font-size: 0.85rem;
-            font-weight: 600;
-            min-width: 60px;
-            outline: none;
-        }
-
-        .scale-input-group select {
-            background: transparent;
-            border: none;
-            color: var(--text);
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .scale-info {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            background: rgba(0, 255, 159, 0.1);
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            text-align: center;
-            border: 1px solid var(--border);
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .measurement-result {
-            background: var(--surface);
-            padding: 12px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            text-align: center;
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .measurement-result .label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .measurement-result .value {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-top: 4px;
-        }
-
-        .camera-action-buttons {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        /* ===== QUICK MEASURE MODE ===== */
-        .quick-measure-mode {
-            flex-direction: column;
-        }
-
-        .quick-canvas {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, rgba(10, 14, 23, 0.95) 0%, rgba(16, 24, 38, 0.95) 100%);
-        }
-
-        #quick-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
+            top: 0;
+            left: 0;
+            z-index: 500;
+            pointer-events: auto;
             touch-action: none;
             cursor: crosshair;
         }
 
-        .quick-info {
+        .result-panel {
             position: absolute;
             top: 12px;
-            left: 12px;
-            right: 12px;
-            z-index: 50;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 600;
             background: var(--surface-glass);
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 10px 18px;
+            min-width: 180px;
+            max-width: calc(100% - 24px);
+            text-align: center;
             border: 1px solid var(--border);
-            padding: 12px;
-            border-radius: var(--radius-sm);
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
         }
-
-        .quick-measure-result {
-            position: absolute;
-            bottom: 12px;
-            left: 12px;
-            right: 12px;
-            z-index: 50;
-            background: var(--surface-glass);
-            backdrop-filter: blur(8px);
-            border: 2px solid var(--primary);
-            padding: 16px;
-            border-radius: var(--radius-sm);
-            text-align: center;
-            box-shadow: 0 0 20px rgba(0, 255, 159, 0.2);
+        .result-panel.visible {
+            opacity: 1;
+            pointer-events: auto;
         }
-
-        .quick-measure-result .label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-        }
-
-        .quick-measure-result .value {
-            font-size: 1.8rem;
+        .result-panel .result-value {
+            font-size: 1.6rem;
             font-weight: 700;
             color: var(--primary);
+            text-shadow: 0 0 10px var(--primary-glow);
+            font-variant-numeric: tabular-nums;
+        }
+        .result-panel .result-unit {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .result-panel .result-status {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
 
-        .quick-measure-result .distance {
-            margin-top: 8px;
-            font-size: 1rem;
-            color: var(--accent);
-        }
-
-        .quick-controls {
-            padding: 12px;
+        .bottom-controls {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 550;
             background: var(--surface-glass);
-            backdrop-filter: blur(8px);
-            border-top: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 12px 16px;
+            width: calc(100% - 24px);
+            max-width: 600px;
             display: flex;
+            flex-direction: column;
             gap: 8px;
-            justify-content: center;
+        }
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             flex-wrap: wrap;
+            justify-content: center;
+        }
+        .hint-text {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-align: center;
         }
 
-        /* ===== MODALS ===== */
-        .modal {
-            display: none;
+        .scale-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .scale-input-row label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .scale-input-row input {
+            width: 100px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        .scale-input-row input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+        }
+
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.7);
-            z-index: 200;
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: flex;
             align-items: center;
             justify-content: center;
-            backdrop-filter: blur(4px);
             padding: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
         }
-
-        .modal.open {
-            display: flex;
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
         }
-
-        .modal-content {
-            background: var(--surface);
-            border: 1px solid var(--border);
+        .modal {
+            background: var(--surface-glass);
+            backdrop-filter: blur(12px);
             border-radius: var(--radius);
+            box-shadow: var(--shadow);
             padding: 20px;
-            max-width: 90vw;
-            max-height: 80vh;
+            width: 100%;
+            max-width: 420px;
+            max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
         }
-
-        .modal-header {
+        .modal h2 {
             font-size: 1.2rem;
-            font-weight: 700;
             margin-bottom: 16px;
             color: var(--text);
         }
-
-        .modal-body {
-            margin-bottom: 16px;
+        .modal .form-group {
+            margin-bottom: 14px;
         }
-
-        .form-group {
-            margin-bottom: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .form-group label {
-            font-size: 0.85rem;
+        .modal label {
+            display: block;
+            font-size: 0.82rem;
             font-weight: 600;
+            margin-bottom: 4px;
             color: var(--text-secondary);
         }
-
-        .form-group input,
-        .form-group select {
+        .modal select,
+        .modal input[type="number"] {
+            width: 100%;
             padding: 10px 12px;
             border: 1px solid var(--border);
-            background: var(--surface-glass);
-            color: var(--text);
             border-radius: var(--radius-sm);
-            font-size: 0.9rem;
+            background: var(--surface);
+            color: var(--text);
             font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
         }
-
-        .modal-footer {
+        .modal .modal-actions {
             display: flex;
             gap: 8px;
             justify-content: flex-end;
+            margin-top: 16px;
+            flex-wrap: wrap;
         }
 
-        /* ===== UTILITIES ===== */
         .sr-only {
             position: absolute;
             width: 1px;
@@ -611,654 +477,875 @@
             margin: -1px;
             overflow: hidden;
             clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border-width: 0;
+            border: 0;
+        }
+        .sr-live {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
         }
 
-        .hidden {
-            display: none !important;
+        .leaflet-container {
+            font-family: var(--font-stack);
+            background: #0F1520;
+        }
+        .leaflet-control-zoom a {
+            background: var(--surface-glass) !important;
+            color: var(--text) !important;
+            border-color: var(--border) !important;
         }
 
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 600px) {
-            .mode-tabs {
-                margin: 0 8px;
+        @media (max-width: 480px) {
+            .result-panel {
+                padding: 8px 12px;
+                min-width: 140px;
             }
-
+            .result-panel .result-value {
+                font-size: 1.3rem;
+            }
+            .bottom-controls {
+                padding: 8px 8px;
+                bottom: 8px;
+                width: calc(100% - 16px);
+            }
+            .btn {
+                min-height: 40px;
+                min-width: 40px;
+                padding: 8px 10px;
+                font-size: 0.78rem;
+            }
             .mode-tab {
-                font-size: 0.7rem;
-                padding: 4px 8px;
-            }
-
-            .camera-controls-row {
-                flex-direction: column;
-            }
-
-            .scale-input-group,
-            .scale-info,
-            .measurement-result {
-                min-width: auto;
-                width: 100%;
-            }
-
-            .modal-content {
-                width: 100%;
+                padding: 6px 8px;
+                font-size: 0.72rem;
             }
         }
 
-        @supports (padding: max(0px)) {
-            body {
-                padding-left: max(0px, env(safe-area-inset-left));
-                padding-right: max(0px, env(safe-area-inset-right));
-                padding-bottom: max(0px, env(safe-area-inset-bottom));
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition-duration: 0.01ms !important;
+                animation-duration: 0.01ms !important;
             }
         }
     </style>
 </head>
 <body>
-    <a href="#main" class="skip-link">Перейти до основного вмісту</a>
 
-    <!-- HEADER -->
-    <header class="app-header">
-        <div class="app-title">📍 Курвіметр PRO</div>
-        <div class="mode-tabs">
-            <button class="mode-tab active" data-mode="digital" aria-pressed="true">🗺️ Карта</button>
-            <button class="mode-tab" data-mode="camera" aria-pressed="false">📷 Камера</button>
-            <button class="mode-tab" data-mode="quick" aria-pressed="false">⚡ Швидко</button>
+    <a href="#main-content" class="skip-link">Перейти до основного вмісту</a>
+    <div id="sr-live" class="sr-live" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Header -->
+    <header class="app-header" role="banner">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.58 2 4 5.58 4 10c0 4.5 4.5 9.5 7 11.5 0.3 0.25 0.7 0.25 1 0C14.5 19.5 19 14.5 19 10c0-4.42-3.58-8-8-8zm0 11.5A3.5 3.5 0 1 1 12 6a3.5 3.5 0 0 1 0 7.5z"/></svg>
+            <span>КУРВІМЕТР</span>
         </div>
         <div class="header-actions">
-            <button class="btn-icon" id="btn-theme" title="Тема" aria-label="Перемикнути тему">🌙</button>
-            <button class="btn-icon" id="btn-info" title="Інформація" aria-label="Інформація">ℹ️</button>
+            <button id="btn-settings" class="btn btn--sm" aria-label="Налаштування" title="Налаштування">
+                <span aria-hidden="true">⚙️</span>
+                <span class="btn-label">Налаштування</span>
+            </button>
+            <button id="btn-theme" class="btn btn--icon btn--sm" aria-label="Перемкнути тему" title="Перемкнути тему">
+                <span id="theme-icon" aria-hidden="true">☀️</span>
+            </button>
         </div>
     </header>
 
-    <!-- MAIN CONTENT -->
-    <main class="content" id="main">
-        <!-- DIGITAL MAP MODE -->
-        <div class="mode-content active" data-mode="digital">
-            <div id="map-container">
+    <main class="main-container" id="main-content">
+        <!-- Mode Tabs -->
+        <div class="mode-tabs" role="tablist" aria-label="Режим роботи">
+            <button class="mode-tab active" data-mode="digital" role="tab" aria-selected="true">🗺️ Цифрова карта</button>
+            <button class="mode-tab" data-mode="camera" role="tab" aria-selected="false">📷 Фізична карта</button>
+        </div>
+
+        <!-- Digital Map View -->
+        <div class="view-container active" id="view-digital">
+            <div class="map-area" id="map-area">
                 <div id="map"></div>
-                <canvas id="map-canvas" class="map-canvas"></canvas>
-            </div>
-            <div class="digital-controls">
-                <button class="btn primary" id="btn-activate">🎯 Активувати</button>
-                <button class="btn" id="btn-clear">🗑️ Очистити</button>
-                <button class="btn" id="btn-undo">↶ Скасувати</button>
-                <button class="btn" id="btn-save">💾 Зберегти</button>
-            </div>
-        </div>
+                <canvas id="drawing-canvas"></canvas>
 
-        <!-- CAMERA MODE -->
-        <div class="mode-content" data-mode="camera">
-            <div class="camera-container">
-                <video id="camera-feed" playsinline autoplay muted></video>
-                <div class="camera-overlay">
-                    <div class="crosshair"></div>
+                <div id="result-panel-digital" class="result-panel" role="status" aria-live="polite">
+                    <div class="result-status" id="result-status-digital">Готово</div>
+                    <div class="result-value" id="result-value-digital">0 <span class="result-unit" id="result-unit-digital">м</span></div>
                 </div>
-            </div>
-            <div class="camera-controls">
-                <div class="camera-controls-row">
-                    <div class="scale-input-group">
-                        <label for="scale-value">Масштаб:</label>
-                        <input type="number" id="scale-value" placeholder="100" min="1" step="1" aria-label="Значення масштабу">
-                        <select id="scale-unit" aria-label="Одиниця масштабу">
-                            <option value="m">м/пкс</option>
-                            <option value="km">км/пкс</option>
-                            <option value="cm">см/пкс</option>
-                        </select>
+
+                <div class="bottom-controls">
+                    <div class="controls-row">
+                        <button id="btn-activate-digital" class="btn btn--primary" aria-pressed="false">
+                            <span aria-hidden="true">📏</span>
+                            <span class="btn-label">Активувати курвіметр</span>
+                        </button>
                     </div>
-                    <div class="scale-info" id="scale-info">Масштаб не встановлено</div>
-                </div>
-                <div class="camera-controls-row">
-                    <div class="measurement-result" id="measurement-result">
-                        <div class="label">Вимірювання</div>
-                        <div class="value">—</div>
+                    <div class="controls-row" id="drawing-controls-digital" style="display:none;">
+                        <button id="btn-undo-digital" class="btn btn--sm" aria-label="Скасувати">↩️ Скасувати</button>
+                        <button id="btn-clear-digital" class="btn btn--danger btn--sm" aria-label="Очистити">🧹 Очистити</button>
+                        <button id="btn-finish-digital" class="btn btn--primary btn--sm" aria-label="Завершити">✅ Завершити</button>
                     </div>
-                </div>
-                <div class="camera-action-buttons">
-                    <button class="btn primary" id="btn-start-measure">🎯 Почати вимірювання</button>
-                    <button class="btn" id="btn-add-point">📍 Додати точку</button>
-                    <button class="btn" id="btn-finish-measure">✅ Завершити</button>
-                    <button class="btn danger" id="btn-reset-measure">🔄 Скинути</button>
+                    <div class="hint-text" id="hint-digital">Натисніть «Активувати курвіметр», щоб почати вимірювання</div>
                 </div>
             </div>
         </div>
 
-        <!-- QUICK MEASURE MODE -->
-        <div class="mode-content" data-mode="quick">
-            <div class="quick-canvas">
-                <canvas id="quick-canvas"></canvas>
-                <div class="quick-info">Натисніть та проведіть пальцем на карту — два пункти створять лінію вимірювання</div>
-            </div>
-            <div class="quick-controls">
-                <button class="btn primary" id="btn-reset-quick">🔄 Скинути</button>
-                <button class="btn" id="btn-info-quick">ℹ️ Довідка</button>
+        <!-- Camera View -->
+        <div class="view-container" id="view-camera">
+            <div class="camera-container" id="camera-container">
+                <video id="camera-video" autoplay playsinline muted></video>
+                <canvas id="camera-canvas"></canvas>
+
+                <div id="result-panel-camera" class="result-panel" role="status" aria-live="polite">
+                    <div class="result-status" id="result-status-camera">Готово</div>
+                    <div class="result-value" id="result-value-camera">0 <span class="result-unit" id="result-unit-camera">м</span></div>
+                </div>
+
+                <div class="bottom-controls">
+                    <div class="scale-input-row">
+                        <label for="camera-scale-input">Масштаб (1:)</label>
+                        <input type="number" id="camera-scale-input" value="50000" min="1" step="1000" aria-label="Масштаб карти">
+                    </div>
+                    <div class="controls-row">
+                        <button id="btn-activate-camera" class="btn btn--primary" aria-pressed="false">
+                            <span aria-hidden="true">🎯</span>
+                            <span class="btn-label">Активувати курвіметр</span>
+                        </button>
+                    </div>
+                    <div class="controls-row" id="camera-active-controls" style="display:none;">
+                        <button id="btn-add-point-camera" class="btn" aria-label="Додати точку">
+                            <span aria-hidden="true">📍</span>
+                            <span class="btn-label">Додати точку</span>
+                        </button>
+                        <button id="btn-clear-camera" class="btn btn--danger btn--sm" aria-label="Очистити">
+                            <span aria-hidden="true">🧹</span>
+                        </button>
+                        <button id="btn-finish-camera" class="btn btn--primary btn--sm" aria-label="Завершити">
+                            <span aria-hidden="true">✅</span>
+                        </button>
+                    </div>
+                    <div class="hint-text" id="hint-camera">Натисніть «Активувати курвіметр» для початку вимірювання</div>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- INFO MODAL -->
-    <div class="modal" id="modal-info" role="dialog" aria-labelledby="modal-title">
-        <div class="modal-content">
-            <div class="modal-header" id="modal-title">ℹ️ Про додаток</div>
-            <div class="modal-body">
-                <h3 style="margin-bottom: 8px; color: var(--primary);">Курвіметр PRO</h3>
-                <p style="margin-bottom: 12px; font-size: 0.9rem; line-height: 1.6;">
-                    Сучасний інструмент для вимірювання відстаней на цифрових та фізичних картах.
-                </p>
-                
-                <h4 style="margin-top: 14px; margin-bottom: 8px; color: var(--accent);">🗺️ Режим Карта</h4>
-                <p style="font-size: 0.85rem; margin-bottom: 12px;">Рисуйте маршрути на інтерактивній карті з точним розрахунком відстані.</p>
-
-                <h4 style="margin-top: 14px; margin-bottom: 8px; color: var(--accent);">📷 Режим Камера</h4>
-                <p style="font-size: 0.85rem; margin-bottom: 12px;">Вивідіть камеру на фізичну карту, встановіть масштаб та виміряйте відстані прямо на атласі.</p>
-
-                <h4 style="margin-top: 14px; margin-bottom: 8px; color: var(--accent);">⚡ Режим Швидко</h4>
-                <p style="font-size: 0.85rem; margin-bottom: 12px;">Дві точки палецем — миттєвий розрахунок відстані з масштабом карти.</p>
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <div class="modal">
+            <h2 id="settings-title">⚙️ Налаштування</h2>
+            <div class="form-group">
+                <label for="setting-units">Одиниці виміру</label>
+                <select id="setting-units">
+                    <option value="metric">Метрична (м / км)</option>
+                    <option value="imperial">Імперська (фути / милі)</option>
+                    <option value="nautical">Морські милі</option>
+                </select>
             </div>
-            <div class="modal-footer">
-                <button class="btn" id="btn-close-info">Закрити</button>
+            <div class="form-group">
+                <label for="setting-high-contrast">Високий контраст</label>
+                <select id="setting-high-contrast">
+                    <option value="false">Звичайний</option>
+                    <option value="true">Високий контраст</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="setting-haptic">Вібрація</label>
+                <select id="setting-haptic">
+                    <option value="false">Вимкнено</option>
+                    <option value="true">Увімкнено</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="btn-settings-close" class="btn">Закрити</button>
+                <button id="btn-settings-save" class="btn btn--primary">Зберегти</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ===== STATE & INITIALIZATION =====
+    (function() {
+        'use strict';
+
+        // ===== State =====
         const state = {
-            currentMode: 'digital',
-            theme: localStorage.getItem('curvimeter-theme') || 'dark',
-            scale: {
-                value: 100,
-                unit: 'm', // m, km, cm
-            },
-            camera: {
-                active: false,
-                stream: null,
-                isMeasuring: false,
-                points: [],
-                measurementPixels: 0,
-            },
-            quick: {
-                points: [],
-                canvas: null,
-                ctx: null,
-                scale: localStorage.getItem('curvimeter-quick-scale') || 1000,
-                unit: localStorage.getItem('curvimeter-quick-unit') || 'm',
-            }
+            theme: 'dark',
+            units: 'metric',
+            highContrast: false,
+            haptic: false,
+            mode: 'digital',
+            digitalActive: false,
+            isDrawing: false,
+            points: [],
+            totalLengthM: 0,
+            cameraActive: false,
+            cameraPoints: [],
+            cameraScale: 50000,
+            cameraStream: null,
         };
 
-        // ===== UTILITY FUNCTIONS =====
-        function formatDistance(meters) {
-            if (meters >= 1000) {
-                return { value: (meters / 1000).toFixed(2), unit: 'км' };
+        // ===== DOM =====
+        const srLive = document.getElementById('sr-live');
+        const canvasDigital = document.getElementById('drawing-canvas');
+        const ctxDigital = canvasDigital.getContext('2d');
+        const canvasCamera = document.getElementById('camera-canvas');
+        const ctxCamera = canvasCamera.getContext('2d');
+        const video = document.getElementById('camera-video');
+        const btnActivateDigital = document.getElementById('btn-activate-digital');
+        const drawingControlsDigital = document.getElementById('drawing-controls-digital');
+        const btnUndoDigital = document.getElementById('btn-undo-digital');
+        const btnClearDigital = document.getElementById('btn-clear-digital');
+        const btnFinishDigital = document.getElementById('btn-finish-digital');
+        const btnActivateCamera = document.getElementById('btn-activate-camera');
+        const cameraActiveControls = document.getElementById('camera-active-controls');
+        const btnAddPointCamera = document.getElementById('btn-add-point-camera');
+        const btnClearCamera = document.getElementById('btn-clear-camera');
+        const btnFinishCamera = document.getElementById('btn-finish-camera');
+        const hintDigital = document.getElementById('hint-digital');
+        const hintCamera = document.getElementById('hint-camera');
+        const cameraScaleInput = document.getElementById('camera-scale-input');
+        const settingsModal = document.getElementById('settings-modal');
+        const settingUnits = document.getElementById('setting-units');
+        const settingHighContrast = document.getElementById('setting-high-contrast');
+        const settingHaptic = document.getElementById('setting-haptic');
+        const btnTheme = document.getElementById('btn-theme');
+        const themeIcon = document.getElementById('theme-icon');
+        const resultPanelDigital = document.getElementById('result-panel-digital');
+        const resultValueDigital = document.getElementById('result-value-digital');
+        const resultStatusDigital = document.getElementById('result-status-digital');
+        const resultPanelCamera = document.getElementById('result-panel-camera');
+        const resultValueCamera = document.getElementById('result-value-camera');
+        const resultStatusCamera = document.getElementById('result-status-camera');
+
+        // ===== Map =====
+        const map = L.map('map', {
+            center: [49.0, 31.0],
+            zoom: 6,
+            zoomControl: true,
+            attributionControl: true,
+        });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+        L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
+
+        // ===== Utility Functions =====
+        function announceSR(message) {
+            srLive.textContent = '';
+            setTimeout(() => { srLive.textContent = message; }, 50);
+        }
+
+        function formatLength(meters) {
+            if (state.units === 'imperial') {
+                const feet = meters * 3.28084;
+                if (feet < 5280) {
+                    return { value: Math.round(feet) + '', unit: 'фути', raw: meters };
+                }
+                return { value: (feet / 5280).toFixed(2), unit: 'милі', raw: meters };
+            } else if (state.units === 'nautical') {
+                if (meters < 1852) {
+                    return { value: Math.round(meters) + '', unit: 'м', raw: meters };
+                }
+                return { value: (meters / 1852).toFixed(2), unit: 'мор. милі', raw: meters };
+            } else {
+                if (meters < 1000) {
+                    return { value: Math.round(meters) + '', unit: 'м', raw: meters };
+                }
+                return { value: (meters / 1000).toFixed(2), unit: 'км', raw: meters };
             }
-            return { value: meters.toFixed(2), unit: 'м' };
         }
 
-        function pixelsToMeters(pixels, scaleValue, scaleUnit) {
-            let metersPerPixel = scaleValue;
-            if (scaleUnit === 'km') metersPerPixel = scaleValue * 1000;
-            if (scaleUnit === 'cm') metersPerPixel = scaleValue / 100;
-            return pixels * metersPerPixel;
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
         }
 
-        function distance(p1, p2) {
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            return Math.sqrt(dx * dx + dy * dy);
+        function pixelsToMeters(px, scale) {
+            const pxPerCm = 37.8;
+            const cmOnMap = px / pxPerCm;
+            const cmOnGround = cmOnMap * scale;
+            return cmOnGround / 100;
         }
 
-        // ===== THEME MANAGEMENT =====
+        function calculateCameraDistancePx() {
+            if (state.cameraPoints.length < 2) return 0;
+            const p1 = state.cameraPoints[0];
+            const p2 = state.cameraPoints[state.cameraPoints.length - 1];
+            return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+        }
+
+        // ===== Theme =====
         function applyTheme(theme) {
             state.theme = theme;
             document.documentElement.setAttribute('data-theme', theme);
-            document.getElementById('theme-color-meta').setAttribute('content', theme === 'dark' ? '#0A0E17' : '#F5F7FA');
-            document.getElementById('btn-theme').textContent = theme === 'dark' ? '☀️' : '🌙';
-            localStorage.setItem('curvimeter-theme', theme);
+            themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+            document.getElementById('theme-color-meta').setAttribute('content', theme === 'dark' ? '#0A0E17' : '#E8EEF4');
+            localStorage.setItem('curvimeter_theme', theme);
         }
 
         function cycleTheme() {
-            applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+            const next = state.theme === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            announceSR('Тему змінено на ' + (next === 'dark' ? 'темну' : 'світлу'));
         }
 
-        // ===== MODE SWITCHING =====
-        function switchMode(mode) {
-            state.currentMode = mode;
-            
-            // Update tabs
-            document.querySelectorAll('.mode-tab').forEach(tab => {
-                const isActive = tab.dataset.mode === mode;
-                tab.classList.toggle('active', isActive);
-                tab.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-            });
+        // ===== Digital Canvas =====
+        function resizeDigitalCanvas() {
+            const rect = document.getElementById('map-area').getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvasDigital.width = rect.width * dpr;
+            canvasDigital.height = rect.height * dpr;
+            canvasDigital.style.width = rect.width + 'px';
+            canvasDigital.style.height = rect.height + 'px';
+            ctxDigital.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctxDigital.lineCap = 'round';
+            ctxDigital.lineJoin = 'round';
+            redrawDigitalCanvas();
+        }
 
-            // Update content
-            document.querySelectorAll('.mode-content').forEach(content => {
-                content.classList.toggle('active', content.dataset.mode === mode);
+        function redrawDigitalCanvas() {
+            const rect = document.getElementById('map-area').getBoundingClientRect();
+            ctxDigital.clearRect(0, 0, rect.width, rect.height);
+            if (state.points.length === 0) return;
+
+            const lineColor = state.highContrast ? '#FFD54F' : (state.theme === 'dark' ? '#00FF9F' : '#00897B');
+            const outlineColor = state.theme === 'dark' ? '#0A0E17' : '#FFFFFF';
+            const lw = 3;
+
+            if (state.points.length > 0) {
+                ctxDigital.strokeStyle = outlineColor;
+                ctxDigital.lineWidth = lw + 2;
+                ctxDigital.beginPath();
+                ctxDigital.moveTo(state.points[0].x, state.points[0].y);
+                for (let i = 1; i < state.points.length; i++) {
+                    ctxDigital.lineTo(state.points[i].x, state.points[i].y);
+                }
+                ctxDigital.stroke();
+
+                ctxDigital.strokeStyle = lineColor;
+                ctxDigital.lineWidth = lw;
+                ctxDigital.beginPath();
+                ctxDigital.moveTo(state.points[0].x, state.points[0].y);
+                for (let i = 1; i < state.points.length; i++) {
+                    ctxDigital.lineTo(state.points[i].x, state.points[i].y);
+                }
+                ctxDigital.stroke();
+
+                const last = state.points[state.points.length - 1];
+                ctxDigital.fillStyle = lineColor;
+                ctxDigital.strokeStyle = outlineColor;
+                ctxDigital.lineWidth = 1.5;
+                ctxDigital.beginPath();
+                ctxDigital.arc(last.x, last.y, lw + 2, 0, Math.PI * 2);
+                ctxDigital.fill();
+                ctxDigital.stroke();
+            }
+        }
+
+        function recalculateDigitalLength() {
+            state.totalLengthM = 0;
+            for (let i = 1; i < state.points.length; i++) {
+                state.totalLengthM += haversineDistance(
+                    state.points[i - 1].lat, state.points[i - 1].lng,
+                    state.points[i].lat, state.points[i].lng
+                );
+            }
+        }
+
+        function updateDigitalResult(status) {
+            const formatted = formatLength(state.totalLengthM);
+            resultValueDigital.innerHTML = formatted.value + ' <span class="result-unit">' + formatted.unit + '</span>';
+            resultStatusDigital.textContent = status || (state.isDrawing ? 'Вимірювання...' : (state.points.length > 0 ? 'Завершено' : 'Готово'));
+            if (state.totalLengthM > 0 || state.isDrawing) {
+                resultPanelDigital.classList.add('visible');
+            } else {
+                resultPanelDigital.classList.remove('visible');
+            }
+        }
+
+        // ===== Digital Tool =====
+        function activateDigital() {
+            if (state.digitalActive) return;
+            state.digitalActive = true;
+            state.isDrawing = false;
+            state.points = [];
+            state.totalLengthM = 0;
+            canvasDigital.classList.add('active');
+            map.dragging.disable();
+            map.touchZoom.disable();
+            map.scrollWheelZoom.disable();
+            map.doubleClickZoom.disable();
+            btnActivateDigital.setAttribute('aria-pressed', 'true');
+            btnActivateDigital.innerHTML = '<span aria-hidden="true">✅</span><span class="btn-label">Активовано</span>';
+            btnActivateDigital.classList.remove('btn--primary');
+            btnActivateDigital.classList.add('btn--danger');
+            drawingControlsDigital.style.display = 'flex';
+            hintDigital.textContent = 'Проведіть пальцем по карті для вимірювання';
+            updateDigitalResult('Готово до вимірювання');
+            announceSR('Курвіметр активовано. Проведіть пальцем по карті.');
+        }
+
+        function deactivateDigital() {
+            if (!state.digitalActive) return;
+            state.digitalActive = false;
+            state.isDrawing = false;
+            canvasDigital.classList.remove('active');
+            map.dragging.enable();
+            map.touchZoom.enable();
+            map.scrollWheelZoom.enable();
+            map.doubleClickZoom.enable();
+            btnActivateDigital.setAttribute('aria-pressed', 'false');
+            btnActivateDigital.innerHTML = '<span aria-hidden="true">📏</span><span class="btn-label">Активувати курвіметр</span>';
+            btnActivateDigital.classList.add('btn--primary');
+            btnActivateDigital.classList.remove('btn--danger');
+            drawingControlsDigital.style.display = 'none';
+            hintDigital.textContent = 'Натисніть «Активувати курвіметр», щоб почати вимірювання';
+            if (state.points.length > 0) {
+                updateDigitalResult('Завершено');
+            } else {
+                resultPanelDigital.classList.remove('visible');
+            }
+            announceSR('Курвіметр деактивовано.');
+        }
+
+        function clearDigital() {
+            state.points = [];
+            state.totalLengthM = 0;
+            state.isDrawing = false;
+            updateDigitalResult('Готово');
+            redrawDigitalCanvas();
+            announceSR('Маршрут очищено.');
+        }
+
+        function undoDigital() {
+            if (state.points.length === 0) return;
+            const removeCount = Math.min(15, state.points.length);
+            state.points.splice(state.points.length - removeCount, removeCount);
+            recalculateDigitalLength();
+            if (state.points.length === 0) {
+                state.totalLengthM = 0;
+                resultPanelDigital.classList.remove('visible');
+            } else {
+                updateDigitalResult(state.isDrawing ? 'Вимірювання...' : 'Завершено');
+            }
+            redrawDigitalCanvas();
+            announceSR('Скасовано останній сегмент.');
+        }
+
+        function finishDigital() {
+            if (state.points.length === 0) return;
+            state.isDrawing = false;
+            recalculateDigitalLength();
+            updateDigitalResult('Завершено');
+            if (state.haptic && navigator.vibrate) navigator.vibrate(40);
+            const formatted = formatLength(state.totalLengthM);
+            announceSR('Маршрут завершено. Довжина: ' + formatted.value + ' ' + formatted.unit);
+            redrawDigitalCanvas();
+        }
+
+        // ===== Camera =====
+        function updateCameraResult(status) {
+            const distPx = calculateCameraDistancePx();
+            const distM = pixelsToMeters(distPx, state.cameraScale);
+            const formatted = formatLength(distM);
+            resultValueCamera.innerHTML = formatted.value + ' <span class="result-unit">' + formatted.unit + '</span>';
+            resultStatusCamera.textContent = status || (state.cameraPoints.length >= 2 ? 'Завершено' : (state.cameraPoints.length === 1 ? 'Перша точка' : 'Готово'));
+            if (state.cameraPoints.length > 0) {
+                resultPanelCamera.classList.add('visible');
+            } else {
+                resultPanelCamera.classList.remove('visible');
+            }
+        }
+
+        function resizeCameraCanvas() {
+            const rect = document.getElementById('camera-container').getBoundingClientRect();
+            canvasCamera.width = rect.width;
+            canvasCamera.height = rect.height;
+            canvasCamera.style.width = rect.width + 'px';
+            canvasCamera.style.height = rect.height + 'px';
+            redrawCameraCanvas();
+        }
+
+        function redrawCameraCanvas() {
+            const rect = document.getElementById('camera-container').getBoundingClientRect();
+            ctxCamera.clearRect(0, 0, rect.width, rect.height);
+            if (state.cameraPoints.length === 0) return;
+
+            const lineColor = state.highContrast ? '#FFD54F' : (state.theme === 'dark' ? '#00FF9F' : '#00897B');
+            const lw = 3;
+
+            if (state.cameraPoints.length >= 2) {
+                ctxCamera.strokeStyle = lineColor;
+                ctxCamera.lineWidth = lw;
+                ctxCamera.beginPath();
+                ctxCamera.moveTo(state.cameraPoints[0].x, state.cameraPoints[0].y);
+                for (let i = 1; i < state.cameraPoints.length; i++) {
+                    ctxCamera.lineTo(state.cameraPoints[i].x, state.cameraPoints[i].y);
+                }
+                ctxCamera.stroke();
+            }
+
+            for (const pt of state.cameraPoints) {
+                ctxCamera.fillStyle = lineColor;
+                ctxCamera.beginPath();
+                ctxCamera.arc(pt.x, pt.y, lw + 3, 0, Math.PI * 2);
+                ctxCamera.fill();
+                ctxCamera.strokeStyle = '#FFFFFF';
+                ctxCamera.lineWidth = 1.5;
+                ctxCamera.stroke();
+            }
+        }
+
+        function activateCameraCurvimeter() {
+            if (state.cameraActive) return;
+            if (!state.cameraStream) {
+                alert('Камера не запущена. Переключіться на вкладку "Фізична карта" знову.');
+                return;
+            }
+            state.cameraActive = true;
+            state.cameraPoints = [];
+            btnActivateCamera.setAttribute('aria-pressed', 'true');
+            btnActivateCamera.innerHTML = '<span aria-hidden="true">✅</span><span class="btn-label">Активовано</span>';
+            btnActivateCamera.classList.remove('btn--primary');
+            btnActivateCamera.classList.add('btn--danger');
+            cameraActiveControls.style.display = 'flex';
+            hintCamera.textContent = 'Натисніть на карту або кнопку «Додати точку» для встановлення першої точки';
+            updateCameraResult('Активовано');
+            redrawCameraCanvas();
+            announceSR('Курвіметр активовано. Встановіть першу точку.');
+            if (state.haptic && navigator.vibrate) navigator.vibrate(30);
+        }
+
+        function deactivateCameraCurvimeter() {
+            if (!state.cameraActive) return;
+            state.cameraActive = false;
+            btnActivateCamera.setAttribute('aria-pressed', 'false');
+            btnActivateCamera.innerHTML = '<span aria-hidden="true">🎯</span><span class="btn-label">Активувати курвіметр</span>';
+            btnActivateCamera.classList.add('btn--primary');
+            btnActivateCamera.classList.remove('btn--danger');
+            cameraActiveControls.style.display = 'none';
+            hintCamera.textContent = 'Натисніть «Активувати курвіметр» для початку вимірювання';
+            if (state.cameraPoints.length > 0) {
+                updateCameraResult('Завершено');
+            } else {
+                updateCameraResult('Готово');
+            }
+            announceSR('Курвіметр деактивовано.');
+        }
+
+        function addCameraPoint() {
+            if (!state.cameraActive) {
+                alert('Спочатку активуйте курвіметр!');
+                return;
+            }
+            if (state.cameraPoints.length >= 2) {
+                state.cameraPoints = [];
+            }
+            const rect = canvasCamera.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            state.cameraPoints.push({ x: centerX, y: centerY });
+            if (state.cameraPoints.length === 1) {
+                hintCamera.textContent = 'Перша точка встановлена. Натисніть «Додати точку» знову для другої точки.';
+                updateCameraResult('Перша точка');
+                announceSR('Перша точка встановлена.');
+            } else {
+                hintCamera.textContent = 'Вимірювання завершено!';
+                updateCameraResult('Завершено');
+                const distPx = calculateCameraDistancePx();
+                const distM = pixelsToMeters(distPx, state.cameraScale);
+                const formatted = formatLength(distM);
+                announceSR('Відстань: ' + formatted.value + ' ' + formatted.unit);
+            }
+            redrawCameraCanvas();
+            if (state.haptic && navigator.vibrate) navigator.vibrate(20);
+        }
+
+        function clearCamera() {
+            state.cameraPoints = [];
+            updateCameraResult('Готово');
+            redrawCameraCanvas();
+            hintCamera.textContent = 'Натисніть «Додати точку» для встановлення першої точки';
+            announceSR('Вимірювання очищено.');
+        }
+
+        function finishCamera() {
+            if (state.cameraPoints.length < 2) {
+                alert('Потрібно мінімум 2 точки для вимірювання!');
+                return;
+            }
+            const distPx = calculateCameraDistancePx();
+            const distM = pixelsToMeters(distPx, state.cameraScale);
+            const formatted = formatLength(distM);
+            updateCameraResult('Завершено');
+            hintCamera.textContent = 'Вимірювання завершено. Відстань: ' + formatted.value + ' ' + formatted.unit;
+            announceSR('Вимірювання завершено. Відстань: ' + formatted.value + ' ' + formatted.unit);
+            if (state.haptic && navigator.vibrate) navigator.vibrate([30, 50, 30]);
+        }
+
+        function handleCameraCanvasClick(e) {
+            if (!state.cameraActive) {
+                alert('Спочатку активуйте курвіметр!');
+                return;
+            }
+            e.preventDefault();
+            const rect = canvasCamera.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            if (state.cameraPoints.length >= 2) {
+                state.cameraPoints = [];
+            }
+            state.cameraPoints.push({ x, y });
+            if (state.cameraPoints.length === 1) {
+                hintCamera.textContent = 'Перша точка встановлена. Натисніть на другу точку.';
+                updateCameraResult('Перша точка');
+                announceSR('Перша точка встановлена.');
+            } else {
+                hintCamera.textContent = 'Вимірювання завершено!';
+                updateCameraResult('Завершено');
+                const distPx = calculateCameraDistancePx();
+                const distM = pixelsToMeters(distPx, state.cameraScale);
+                const formatted = formatLength(distM);
+                announceSR('Відстань: ' + formatted.value + ' ' + formatted.unit);
+            }
+            redrawCameraCanvas();
+            if (state.haptic && navigator.vibrate) navigator.vibrate(20);
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' },
+                    audio: false
+                });
+                state.cameraStream = stream;
+                video.srcObject = stream;
+                await video.play();
+                resizeCameraCanvas();
+                announceSR('Камера увімкнена. Наведіть на карту.');
+            } catch (err) {
+                console.error('Camera error:', err);
+                hintCamera.textContent = 'Помилка доступу до камери. Перевірте дозволи.';
+                announceSR('Помилка доступу до камери.');
+            }
+        }
+
+        function stopCamera() {
+            if (state.cameraStream) {
+                state.cameraStream.getTracks().forEach(track => track.stop());
+                state.cameraStream = null;
+                video.srcObject = null;
+            }
+        }
+
+        // ===== Mode Switching =====
+        function switchMode(mode) {
+            state.mode = mode;
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.mode === mode);
+                tab.setAttribute('aria-selected', tab.dataset.mode === mode);
             });
+            document.getElementById('view-digital').classList.toggle('active', mode === 'digital');
+            document.getElementById('view-camera').classList.toggle('active', mode === 'camera');
 
             if (mode === 'camera') {
-                initCamera();
-            } else if (mode === 'quick') {
-                initQuickMeasure();
-            } else if (mode === 'digital') {
-                // Stop camera if active
-                if (state.camera.active && state.camera.stream) {
-                    state.camera.stream.getTracks().forEach(track => track.stop());
-                    state.camera.active = false;
+                deactivateDigital();
+                startCamera();
+                resizeCameraCanvas();
+                updateCameraResult('Готово');
+                deactivateCameraCurvimeter();
+            } else {
+                stopCamera();
+                if (state.cameraActive) {
+                    deactivateCameraCurvimeter();
                 }
+                map.invalidateSize();
+                resizeDigitalCanvas();
             }
         }
 
-        // ===== DIGITAL MAP MODE =====
-        let map, mapCanvas, mapCtx;
-
-        function initDigitalMap() {
-            if (map) return; // Already initialized
-            
-            map = L.map('map').setView([48.5, 30.5], 10);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap',
-                maxZoom: 19
-            }).addTo(map);
-
-            mapCanvas = document.getElementById('map-canvas');
-            mapCtx = mapCanvas.getContext('2d');
-            resizeMapCanvas();
-
-            window.addEventListener('resize', resizeMapCanvas);
-            
-            document.getElementById('btn-activate').addEventListener('click', () => {
-                alert('Рисування маршруту на карті. Натискайте для додавання точок.');
-            });
-            
-            document.getElementById('btn-clear').addEventListener('click', () => {
-                if (confirm('Очистити все?')) {
-                    console.log('Маршрут очищено');
-                }
-            });
-
-            document.getElementById('btn-undo').addEventListener('click', () => {
-                console.log('Останній сегмент скасовано');
-            });
-
-            document.getElementById('btn-save').addEventListener('click', () => {
-                alert('Маршрут збережено!');
-            });
+        // ===== Settings =====
+        function loadSettings() {
+            const theme = localStorage.getItem('curvimeter_theme') || 'dark';
+            const units = localStorage.getItem('curvimeter_units') || 'metric';
+            const highContrast = localStorage.getItem('curvimeter_high_contrast') === 'true';
+            const haptic = localStorage.getItem('curvimeter_haptic') === 'true';
+            state.theme = theme;
+            state.units = units;
+            state.highContrast = highContrast;
+            state.haptic = haptic;
+            settingUnits.value = units;
+            settingHighContrast.value = highContrast ? 'true' : 'false';
+            settingHaptic.value = haptic ? 'true' : 'false';
+            applyTheme(theme);
         }
 
-        function resizeMapCanvas() {
-            const container = document.getElementById('map-container');
-            if (container && mapCanvas) {
-                mapCanvas.width = container.offsetWidth;
-                mapCanvas.height = container.offsetHeight;
+        function saveSettings() {
+            state.units = settingUnits.value;
+            state.highContrast = settingHighContrast.value === 'true';
+            state.haptic = settingHaptic.value === 'true';
+            localStorage.setItem('curvimeter_units', state.units);
+            localStorage.setItem('curvimeter_high_contrast', state.highContrast);
+            localStorage.setItem('curvimeter_haptic', state.haptic);
+            updateDigitalResult();
+            updateCameraResult();
+            redrawDigitalCanvas();
+            redrawCameraCanvas();
+            settingsModal.classList.remove('open');
+            announceSR('Налаштування збережено.');
+        }
+
+        // ===== Event Listeners =====
+        btnActivateDigital.addEventListener('click', () => {
+            if (state.digitalActive) {
+                deactivateDigital();
+            } else {
+                activateDigital();
             }
-        }
+        });
 
-        // ===== CAMERA MODE =====
-        async function initCamera() {
-            if (state.camera.active) return;
-            
-            const video = document.getElementById('camera-feed');
-            
-            try {
-                // Request camera with specific constraints for rear camera
-                const constraints = {
-                    video: {
-                        facingMode: { ideal: 'environment' }, // Prefer rear camera
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    },
-                    audio: false
-                };
-                
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                
-                video.srcObject = stream;
-                state.camera.stream = stream;
-                state.camera.active = true;
-                
-                // Wait for video to be ready
-                await video.play();
-                
-                console.log('Камера успішно ініціалізована');
-                
-            } catch (err) {
-                console.error('Помилка доступу до камери:', err);
-                
-                // Try fallback with different constraints
-                try {
-                    const fallbackStream = await navigator.mediaDevices.getUserMedia({
-                        video: true,
-                        audio: false
-                    });
-                    
-                    video.srcObject = fallbackStream;
-                    state.camera.stream = fallbackStream;
-                    state.camera.active = true;
-                    await video.play();
-                    
-                    console.log('Камера ініціалізована з fallback налаштуваннями');
-                    
-                } catch (fallbackErr) {
-                    console.error('Помилка fallback камери:', fallbackErr);
-                    alert('Не можна отримати доступ до камери. Перевірте дозволи в налаштуваннях браузера.');
-                }
+        btnUndoDigital.addEventListener('click', undoDigital);
+        btnClearDigital.addEventListener('click', clearDigital);
+        btnFinishDigital.addEventListener('click', finishDigital);
+
+        btnActivateCamera.addEventListener('click', () => {
+            if (state.cameraActive) {
+                deactivateCameraCurvimeter();
+            } else {
+                activateCameraCurvimeter();
             }
+        });
+        btnAddPointCamera.addEventListener('click', addCameraPoint);
+        btnClearCamera.addEventListener('click', clearCamera);
+        btnFinishCamera.addEventListener('click', finishCamera);
 
-            setupCameraControls();
-        }
+        btnTheme.addEventListener('click', cycleTheme);
 
-        function setupCameraControls() {
-            // Scale input handlers
-            const scaleValue = document.getElementById('scale-value');
-            const scaleUnit = document.getElementById('scale-unit');
-            const scaleInfo = document.getElementById('scale-info');
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            settingsModal.classList.add('open');
+        });
+        document.getElementById('btn-settings-close').addEventListener('click', () => {
+            settingsModal.classList.remove('open');
+        });
+        document.getElementById('btn-settings-save').addEventListener('click', saveSettings);
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) settingsModal.classList.remove('open');
+        });
 
-            const updateScaleInfo = () => {
-                const val = parseFloat(scaleValue.value);
-                const unit = scaleUnit.value;
-                
-                if (!val || val <= 0) {
-                    scaleInfo.textContent = 'Введіть масштаб';
-                    scaleInfo.style.borderColor = 'var(--border)';
-                    return;
-                }
-
-                state.scale.value = val;
-                state.scale.unit = unit;
-                
-                let display = `1 пкс = ${val} ${unit}`;
-                scaleInfo.textContent = display;
-                scaleInfo.style.borderColor = 'var(--primary)';
-            };
-
-            scaleValue.addEventListener('input', updateScaleInfo);
-            scaleUnit.addEventListener('change', updateScaleInfo);
-
-            // Camera action buttons
-            document.getElementById('btn-start-measure').addEventListener('click', startMeasurement);
-            document.getElementById('btn-add-point').addEventListener('click', addMeasurementPoint);
-            document.getElementById('btn-finish-measure').addEventListener('click', finishMeasurement);
-            document.getElementById('btn-reset-measure').addEventListener('click', resetMeasurement);
-        }
-
-        function startMeasurement() {
-            const val = parseFloat(document.getElementById('scale-value').value);
-            if (!val || val <= 0) {
-                alert('Спочатку встановіть масштаб');
-                return;
-            }
-
-            state.camera.isMeasuring = true;
-            state.camera.points = [];
-            state.camera.measurementPixels = 0;
-            
-            document.getElementById('btn-start-measure').disabled = true;
-            document.getElementById('btn-add-point').disabled = false;
-            document.getElementById('btn-finish-measure').disabled = false;
-            
-            updateMeasurementDisplay('0 м');
-            console.log('Вимірювання розпочато');
-        }
-
-        function addMeasurementPoint() {
-            if (!state.camera.isMeasuring) {
-                alert('Спочатку натисніть "Почати вимірювання"');
-                return;
-            }
-
-            const video = document.getElementById('camera-feed');
-            const rect = video.getBoundingClientRect();
-            
-            // Add point at center of crosshair
-            const point = {
-                x: rect.width / 2,
-                y: rect.height / 2
-            };
-            
-            state.camera.points.push(point);
-            
-            // Calculate total distance
-            if (state.camera.points.length >= 2) {
-                const lastTwoPoints = state.camera.points.slice(-2);
-                const segmentPixels = distance(lastTwoPoints[0], lastTwoPoints[1]);
-                state.camera.measurementPixels += segmentPixels;
-                
-                const scaleValue = parseFloat(document.getElementById('scale-value').value);
-                const scaleUnit = document.getElementById('scale-unit').value;
-                const meters = pixelsToMeters(state.camera.measurementPixels, scaleValue, scaleUnit);
-                const formatted = formatDistance(meters);
-                
-                updateMeasurementDisplay(`${formatted.value} ${formatted.unit}`);
-            }
-            
-            console.log('Точка додана:', point);
-        }
-
-        function finishMeasurement() {
-            if (!state.camera.isMeasuring) return;
-            
-            state.camera.isMeasuring = false;
-            
-            document.getElementById('btn-start-measure').disabled = false;
-            document.getElementById('btn-add-point').disabled = true;
-            document.getElementById('btn-finish-measure').disabled = true;
-            
-            console.log('Вимірювання завершено');
-        }
-
-        function resetMeasurement() {
-            state.camera.isMeasuring = false;
-            state.camera.points = [];
-            state.camera.measurementPixels = 0;
-            
-            document.getElementById('btn-start-measure').disabled = false;
-            document.getElementById('btn-add-point').disabled = true;
-            document.getElementById('btn-finish-measure').disabled = true;
-            
-            updateMeasurementDisplay('—');
-            console.log('Вимірювання скинуто');
-        }
-
-        function updateMeasurementDisplay(text) {
-            document.querySelector('#measurement-result .value').textContent = text;
-        }
-
-        // ===== QUICK MEASURE MODE =====
-        function initQuickMeasure() {
-            const canvas = document.getElementById('quick-canvas');
-            const ctx = canvas.getContext('2d');
-
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-
-            state.quick.canvas = canvas;
-            state.quick.ctx = ctx;
-            state.quick.points = [];
-
-            let isDrawing = false;
-
-            canvas.addEventListener('pointerdown', (e) => {
-                isDrawing = true;
-                const rect = canvas.getBoundingClientRect();
-                const point = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
-                };
-                state.quick.points = [point];
-                drawQuickMeasure();
-            });
-
-            canvas.addEventListener('pointermove', (e) => {
-                if (!isDrawing || state.quick.points.length === 0) return;
-
-                const rect = canvas.getBoundingClientRect();
-                const point = {
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top
-                };
-
-                state.quick.points[1] = point;
-                drawQuickMeasure();
-            });
-
-            canvas.addEventListener('pointerup', (e) => {
-                if (isDrawing && state.quick.points.length === 2) {
-                    const p1 = state.quick.points[0];
-                    const p2 = state.quick.points[1];
-                    const pixels = distance(p1, p2);
-                    const meters = pixelsToMeters(pixels, state.quick.scale, state.quick.unit);
-                    const formatted = formatDistance(meters);
-
-                    showQuickResult(formatted);
-                }
-                isDrawing = false;
-            });
-
-            document.getElementById('btn-reset-quick').addEventListener('click', () => {
-                state.quick.points = [];
-                const resultDiv = document.querySelector('.quick-measure-result');
-                if (resultDiv) {
-                    resultDiv.style.display = 'none';
-                }
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            });
-        }
-
-        function drawQuickMeasure() {
-            const canvas = state.quick.canvas;
-            const ctx = state.quick.ctx;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (state.quick.points.length > 0) {
-                const p1 = state.quick.points[0];
-                ctx.fillStyle = 'rgba(0, 255, 159, 0.8)';
-                ctx.beginPath();
-                ctx.arc(p1.x, p1.y, 8, 0, Math.PI * 2);
-                ctx.fill();
-
-                if (state.quick.points.length > 1) {
-                    const p2 = state.quick.points[1];
-                    
-                    ctx.strokeStyle = 'rgba(0, 212, 255, 0.6)';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.moveTo(p1.x, p1.y);
-                    ctx.lineTo(p2.x, p2.y);
-                    ctx.stroke();
-
-                    ctx.fillStyle = 'rgba(0, 212, 255, 0.8)';
-                    ctx.beginPath();
-                    ctx.arc(p2.x, p2.y, 8, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    const pixels = distance(p1, p2);
-                    const meters = pixelsToMeters(pixels, state.quick.scale, state.quick.unit);
-                    const formatted = formatDistance(meters);
-                    
-                    const mid = {
-                        x: (p1.x + p2.x) / 2,
-                        y: (p1.y + p2.y) / 2
-                    };
-
-                    ctx.fillStyle = 'rgba(0, 255, 159, 0.9)';
-                    ctx.font = 'bold 14px sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(formatted.value + ' ' + formatted.unit, mid.x, mid.y - 15);
-                }
-            }
-        }
-
-        function showQuickResult(formatted) {
-            let resultDiv = document.querySelector('.quick-measure-result');
-            if (!resultDiv) {
-                resultDiv = document.createElement('div');
-                resultDiv.className = 'quick-measure-result';
-                document.querySelector('.quick-canvas').appendChild(resultDiv);
-            }
-            
-            resultDiv.innerHTML = `
-                <div class="label">Вимірювання</div>
-                <div class="value">${formatted.value}</div>
-                <div class="distance">${formatted.unit}</div>
-            `;
-            resultDiv.style.display = 'block';
-        }
-
-        // ===== MODAL MANAGEMENT =====
-        function openModal(id) {
-            document.getElementById(id).classList.add('open');
-            // Focus first button in modal
-            const firstButton = document.querySelector(`#${id} .btn`);
-            if (firstButton) {
-                setTimeout(() => firstButton.focus(), 100);
-            }
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('open');
-        }
-
-        // ===== EVENT LISTENERS =====
         document.querySelectorAll('.mode-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                switchMode(tab.dataset.mode);
-            });
+            tab.addEventListener('click', () => switchMode(tab.dataset.mode));
         });
 
-        document.getElementById('btn-theme').addEventListener('click', cycleTheme);
-
-        document.getElementById('btn-info').addEventListener('click', () => {
-            openModal('modal-info');
-        });
-
-        document.getElementById('btn-close-info').addEventListener('click', () => {
-            closeModal('modal-info');
-        });
-
-        document.getElementById('btn-info-quick').addEventListener('click', () => {
-            openModal('modal-info');
-        });
-
-        // Close modal on outside click
-        document.getElementById('modal-info').addEventListener('click', (e) => {
-            if (e.target.id === 'modal-info') {
-                closeModal('modal-info');
+        cameraScaleInput.addEventListener('input', () => {
+            state.cameraScale = parseInt(cameraScaleInput.value, 10) || 50000;
+            if (state.cameraPoints.length >= 2) {
+                updateCameraResult('Завершено');
             }
         });
 
-        // Close modal on Escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                closeModal('modal-info');
+        // Digital canvas pointer events
+        canvasDigital.addEventListener('pointerdown', (e) => {
+            if (!state.digitalActive) return;
+            e.preventDefault();
+            state.isDrawing = true;
+            state.points = [];
+            state.totalLengthM = 0;
+            const rect = canvasDigital.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const latlng = map.containerPointToLatLng([x, y]);
+            state.points.push({ x, y, lat: latlng.lat, lng: latlng.lng });
+            canvasDigital.setPointerCapture(e.pointerId);
+            updateDigitalResult('Вимірювання...');
+            redrawDigitalCanvas();
+        });
+
+        canvasDigital.addEventListener('pointermove', (e) => {
+            if (!state.digitalActive || !state.isDrawing) return;
+            e.preventDefault();
+            const rect = canvasDigital.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const latlng = map.containerPointToLatLng([x, y]);
+            const last = state.points[state.points.length - 1];
+            const distPx = Math.sqrt((x - last.x) ** 2 + (y - last.y) ** 2);
+            if (distPx > 3) {
+                state.points.push({ x, y, lat: latlng.lat, lng: latlng.lng });
+                recalculateDigitalLength();
+                updateDigitalResult('Вимірювання...');
+                redrawDigitalCanvas();
+                if (state.haptic && navigator.vibrate && distPx > 10) {
+                    navigator.vibrate(5);
+                }
             }
         });
 
-        // ===== INITIALIZATION =====
+        canvasDigital.addEventListener('pointerup', (e) => {
+            if (!state.digitalActive || !state.isDrawing) return;
+            e.preventDefault();
+            state.isDrawing = false;
+            finishDigital();
+            if (canvasDigital.hasPointerCapture(e.pointerId)) {
+                canvasDigital.releasePointerCapture(e.pointerId);
+            }
+        });
+
+        canvasDigital.addEventListener('pointercancel', (e) => {
+            if (state.isDrawing) {
+                state.isDrawing = false;
+                finishDigital();
+            }
+        });
+
+        // Camera canvas pointer events
+        canvasCamera.addEventListener('pointerdown', handleCameraCanvasClick);
+        canvasCamera.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Resize observers
+        const digitalResizeObserver = new ResizeObserver(() => {
+            if (state.mode === 'digital') {
+                resizeDigitalCanvas();
+                map.invalidateSize();
+            }
+        });
+        digitalResizeObserver.observe(document.getElementById('map-area'));
+
+        const cameraResizeObserver = new ResizeObserver(() => {
+            if (state.mode === 'camera') {
+                resizeCameraCanvas();
+            }
+        });
+        cameraResizeObserver.observe(document.getElementById('camera-container'));
+
+        window.addEventListener('resize', () => {
+            if (state.mode === 'digital') {
+                resizeDigitalCanvas();
+                map.invalidateSize();
+            } else {
+                resizeCameraCanvas();
+            }
+        });
+
+        // ===== Init =====
         function init() {
-            applyTheme(state.theme);
-            initDigitalMap();
-            
-            // Initially disable camera measurement buttons
-            document.getElementById('btn-add-point').disabled = true;
-            document.getElementById('btn-finish-measure').disabled = true;
-            
-            // Announce to screen readers
-            const announce = document.createElement('div');
-            announce.className = 'sr-only';
-            announce.setAttribute('role', 'status');
-            announce.setAttribute('aria-live', 'polite');
-            announce.textContent = 'Курвіметр PRO завантажено';
-            document.body.appendChild(announce);
+            loadSettings();
+            resizeDigitalCanvas();
+            resizeCameraCanvas();
+            map.invalidateSize();
+            updateDigitalResult('Готово');
+            updateCameraResult('Готово');
+            announceSR('Курвіметр завантажено. Виберіть режим роботи.');
         }
 
-        // Start when DOM ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        init();
+    })();
     </script>
 </body>
 </html>
