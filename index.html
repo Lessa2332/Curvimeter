@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#0A0E17" id="theme-color-meta">
     <meta name="description" content="Курвіметр PRO — вимірювання на цифрових і фізичних картах">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -229,6 +229,7 @@
             width: 100%;
             height: 100%;
             z-index: 50;
+            pointer-events: none;
         }
 
         .digital-controls {
@@ -325,6 +326,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
         .crosshair::before,
@@ -349,6 +351,12 @@
             background: var(--surface-glass);
             backdrop-filter: blur(8px);
             border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .camera-controls-row {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
@@ -432,6 +440,13 @@
             margin-top: 4px;
         }
 
+        .camera-action-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
         /* ===== QUICK MEASURE MODE ===== */
         .quick-measure-mode {
             flex-direction: column;
@@ -502,31 +517,6 @@
             margin-top: 8px;
             font-size: 1rem;
             color: var(--accent);
-        }
-
-        .quick-measure-point {
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--primary);
-            border-radius: 50%;
-            background: rgba(0, 255, 159, 0.2);
-            box-shadow: 0 0 12px rgba(0, 255, 159, 0.4);
-            transform: translate(-50%, -50%);
-            z-index: 45;
-        }
-
-        .quick-measure-point.point-2 {
-            border-color: var(--accent);
-            background: rgba(0, 212, 255, 0.2);
-            box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
-        }
-
-        .quick-measure-line {
-            position: absolute;
-            border-top: 2px dashed var(--primary);
-            transform-origin: 0 0;
-            z-index: 44;
         }
 
         .quick-controls {
@@ -640,8 +630,7 @@
                 padding: 4px 8px;
             }
 
-            .camera-controls,
-            .quick-controls {
+            .camera-controls-row {
                 flex-direction: column;
             }
 
@@ -673,9 +662,9 @@
     <header class="app-header">
         <div class="app-title">📍 Курвіметр PRO</div>
         <div class="mode-tabs">
-            <button class="mode-tab active" data-mode="digital">🗺️ Карта</button>
-            <button class="mode-tab" data-mode="camera">📷 Камера</button>
-            <button class="mode-tab" data-mode="quick">⚡ Швидко</button>
+            <button class="mode-tab active" data-mode="digital" aria-pressed="true">🗺️ Карта</button>
+            <button class="mode-tab" data-mode="camera" aria-pressed="false">📷 Камера</button>
+            <button class="mode-tab" data-mode="quick" aria-pressed="false">⚡ Швидко</button>
         </div>
         <div class="header-actions">
             <button class="btn-icon" id="btn-theme" title="Тема" aria-label="Перемикнути тему">🌙</button>
@@ -702,25 +691,35 @@
         <!-- CAMERA MODE -->
         <div class="mode-content" data-mode="camera">
             <div class="camera-container">
-                <video id="camera-feed" playsinline></video>
+                <video id="camera-feed" playsinline autoplay muted></video>
                 <div class="camera-overlay">
                     <div class="crosshair"></div>
                 </div>
             </div>
             <div class="camera-controls">
-                <div class="scale-input-group">
-                    <label for="scale-value">Масштаб:</label>
-                    <input type="number" id="scale-value" placeholder="100" min="1" step="1" aria-label="Значення масштабу">
-                    <select id="scale-unit" aria-label="Одиниця масштабу">
-                        <option value="m">м/пкс</option>
-                        <option value="km">км/пкс</option>
-                        <option value="cm">см/пкс</option>
-                    </select>
+                <div class="camera-controls-row">
+                    <div class="scale-input-group">
+                        <label for="scale-value">Масштаб:</label>
+                        <input type="number" id="scale-value" placeholder="100" min="1" step="1" aria-label="Значення масштабу">
+                        <select id="scale-unit" aria-label="Одиниця масштабу">
+                            <option value="m">м/пкс</option>
+                            <option value="km">км/пкс</option>
+                            <option value="cm">см/пкс</option>
+                        </select>
+                    </div>
+                    <div class="scale-info" id="scale-info">Масштаб не встановлено</div>
                 </div>
-                <div class="scale-info" id="scale-info">Масштаб не встановлено</div>
-                <div class="measurement-result" id="measurement-result">
-                    <div class="label">Вимірювання</div>
-                    <div class="value">—</div>
+                <div class="camera-controls-row">
+                    <div class="measurement-result" id="measurement-result">
+                        <div class="label">Вимірювання</div>
+                        <div class="value">—</div>
+                    </div>
+                </div>
+                <div class="camera-action-buttons">
+                    <button class="btn primary" id="btn-start-measure">🎯 Почати вимірювання</button>
+                    <button class="btn" id="btn-add-point">📍 Додати точку</button>
+                    <button class="btn" id="btn-finish-measure">✅ Завершити</button>
+                    <button class="btn danger" id="btn-reset-measure">🔄 Скинути</button>
                 </div>
             </div>
         </div>
@@ -739,9 +738,9 @@
     </main>
 
     <!-- INFO MODAL -->
-    <div class="modal" id="modal-info">
+    <div class="modal" id="modal-info" role="dialog" aria-labelledby="modal-title">
         <div class="modal-content">
-            <div class="modal-header">ℹ️ Про додаток</div>
+            <div class="modal-header" id="modal-title">ℹ️ Про додаток</div>
             <div class="modal-body">
                 <h3 style="margin-bottom: 8px; color: var(--primary);">Курвіметр PRO</h3>
                 <p style="margin-bottom: 12px; font-size: 0.9rem; line-height: 1.6;">
@@ -752,7 +751,7 @@
                 <p style="font-size: 0.85rem; margin-bottom: 12px;">Рисуйте маршрути на інтерактивній карті з точним розрахунком відстані.</p>
 
                 <h4 style="margin-top: 14px; margin-bottom: 8px; color: var(--accent);">📷 Режим Камера</h4>
-                <p style="font-size: 0.85rem; margin-bottom: 12px;">Вивіді камеру на фізичну карту, встановіть масштаб та виміряйте відстані прямо на атласі.</p>
+                <p style="font-size: 0.85rem; margin-bottom: 12px;">Вивідіть камеру на фізичну карту, встановіть масштаб та виміряйте відстані прямо на атласі.</p>
 
                 <h4 style="margin-top: 14px; margin-bottom: 8px; color: var(--accent);">⚡ Режим Швидко</h4>
                 <p style="font-size: 0.85rem; margin-bottom: 12px;">Дві точки палецем — миттєвий розрахунок відстані з масштабом карти.</p>
@@ -774,6 +773,9 @@
             },
             camera: {
                 active: false,
+                stream: null,
+                isMeasuring: false,
+                points: [],
                 measurementPixels: 0,
             },
             quick: {
@@ -825,7 +827,9 @@
             
             // Update tabs
             document.querySelectorAll('.mode-tab').forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.mode === mode);
+                const isActive = tab.dataset.mode === mode;
+                tab.classList.toggle('active', isActive);
+                tab.setAttribute('aria-pressed', isActive ? 'true' : 'false');
             });
 
             // Update content
@@ -837,6 +841,12 @@
                 initCamera();
             } else if (mode === 'quick') {
                 initQuickMeasure();
+            } else if (mode === 'digital') {
+                // Stop camera if active
+                if (state.camera.active && state.camera.stream) {
+                    state.camera.stream.getTracks().forEach(track => track.stop());
+                    state.camera.active = false;
+                }
             }
         }
 
@@ -844,6 +854,8 @@
         let map, mapCanvas, mapCtx;
 
         function initDigitalMap() {
+            if (map) return; // Already initialized
+            
             map = L.map('map').setView([48.5, 30.5], 10);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap',
@@ -877,26 +889,68 @@
 
         function resizeMapCanvas() {
             const container = document.getElementById('map-container');
-            mapCanvas.width = container.offsetWidth;
-            mapCanvas.height = container.offsetHeight;
+            if (container && mapCanvas) {
+                mapCanvas.width = container.offsetWidth;
+                mapCanvas.height = container.offsetHeight;
+            }
         }
 
         // ===== CAMERA MODE =====
         async function initCamera() {
             if (state.camera.active) return;
             
+            const video = document.getElementById('camera-feed');
+            
             try {
-                const video = document.getElementById('camera-feed');
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' }
-                });
+                // Request camera with specific constraints for rear camera
+                const constraints = {
+                    video: {
+                        facingMode: { ideal: 'environment' }, // Prefer rear camera
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                };
+                
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                
                 video.srcObject = stream;
+                state.camera.stream = stream;
                 state.camera.active = true;
+                
+                // Wait for video to be ready
+                await video.play();
+                
+                console.log('Камера успішно ініціалізована');
+                
             } catch (err) {
-                alert('Не можна отримати доступ до камери: ' + err.message);
+                console.error('Помилка доступу до камери:', err);
+                
+                // Try fallback with different constraints
+                try {
+                    const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                    
+                    video.srcObject = fallbackStream;
+                    state.camera.stream = fallbackStream;
+                    state.camera.active = true;
+                    await video.play();
+                    
+                    console.log('Камера ініціалізована з fallback налаштуваннями');
+                    
+                } catch (fallbackErr) {
+                    console.error('Помилка fallback камери:', fallbackErr);
+                    alert('Не можна отримати доступ до камери. Перевірте дозволи в налаштуваннях браузера.');
+                }
             }
 
-            // Scale input handler
+            setupCameraControls();
+        }
+
+        function setupCameraControls() {
+            // Scale input handlers
             const scaleValue = document.getElementById('scale-value');
             const scaleUnit = document.getElementById('scale-unit');
             const scaleInfo = document.getElementById('scale-info');
@@ -907,6 +961,7 @@
                 
                 if (!val || val <= 0) {
                     scaleInfo.textContent = 'Введіть масштаб';
+                    scaleInfo.style.borderColor = 'var(--border)';
                     return;
                 }
 
@@ -921,31 +976,93 @@
             scaleValue.addEventListener('input', updateScaleInfo);
             scaleUnit.addEventListener('change', updateScaleInfo);
 
-            // Canvas click to measure
+            // Camera action buttons
+            document.getElementById('btn-start-measure').addEventListener('click', startMeasurement);
+            document.getElementById('btn-add-point').addEventListener('click', addMeasurementPoint);
+            document.getElementById('btn-finish-measure').addEventListener('click', finishMeasurement);
+            document.getElementById('btn-reset-measure').addEventListener('click', resetMeasurement);
+        }
+
+        function startMeasurement() {
+            const val = parseFloat(document.getElementById('scale-value').value);
+            if (!val || val <= 0) {
+                alert('Спочатку встановіть масштаб');
+                return;
+            }
+
+            state.camera.isMeasuring = true;
+            state.camera.points = [];
+            state.camera.measurementPixels = 0;
+            
+            document.getElementById('btn-start-measure').disabled = true;
+            document.getElementById('btn-add-point').disabled = false;
+            document.getElementById('btn-finish-measure').disabled = false;
+            
+            updateMeasurementDisplay('0 м');
+            console.log('Вимірювання розпочато');
+        }
+
+        function addMeasurementPoint() {
+            if (!state.camera.isMeasuring) {
+                alert('Спочатку натисніть "Почати вимірювання"');
+                return;
+            }
+
             const video = document.getElementById('camera-feed');
-            video.addEventListener('click', (e) => {
-                const val = parseFloat(scaleValue.value);
-                if (!val || val <= 0) {
-                    alert('Спочатку встановіть масштаб');
-                    return;
-                }
+            const rect = video.getBoundingClientRect();
+            
+            // Add point at center of crosshair
+            const point = {
+                x: rect.width / 2,
+                y: rect.height / 2
+            };
+            
+            state.camera.points.push(point);
+            
+            // Calculate total distance
+            if (state.camera.points.length >= 2) {
+                const lastTwoPoints = state.camera.points.slice(-2);
+                const segmentPixels = distance(lastTwoPoints[0], lastTwoPoints[1]);
+                state.camera.measurementPixels += segmentPixels;
+                
+                const scaleValue = parseFloat(document.getElementById('scale-value').value);
+                const scaleUnit = document.getElementById('scale-unit').value;
+                const meters = pixelsToMeters(state.camera.measurementPixels, scaleValue, scaleUnit);
+                const formatted = formatDistance(meters);
+                
+                updateMeasurementDisplay(`${formatted.value} ${formatted.unit}`);
+            }
+            
+            console.log('Точка додана:', point);
+        }
 
-                const rect = video.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+        function finishMeasurement() {
+            if (!state.camera.isMeasuring) return;
+            
+            state.camera.isMeasuring = false;
+            
+            document.getElementById('btn-start-measure').disabled = false;
+            document.getElementById('btn-add-point').disabled = true;
+            document.getElementById('btn-finish-measure').disabled = true;
+            
+            console.log('Вимірювання завершено');
+        }
 
-                if (state.camera.measurementPixels === 0) {
-                    state.camera.measurementPixels = distance({x: 0, y: 0}, {x, y});
-                } else {
-                    const totalPixels = state.camera.measurementPixels + distance({x: 0, y: 0}, {x, y});
-                    const meters = pixelsToMeters(totalPixels, val, scaleUnit.value);
-                    const formatted = formatDistance(meters);
-                    
-                    document.querySelector('#measurement-result .value').textContent = formatted.value + ' ' + formatted.unit;
-                    
-                    state.camera.measurementPixels = 0;
-                }
-            });
+        function resetMeasurement() {
+            state.camera.isMeasuring = false;
+            state.camera.points = [];
+            state.camera.measurementPixels = 0;
+            
+            document.getElementById('btn-start-measure').disabled = false;
+            document.getElementById('btn-add-point').disabled = true;
+            document.getElementById('btn-finish-measure').disabled = true;
+            
+            updateMeasurementDisplay('—');
+            console.log('Вимірювання скинуто');
+        }
+
+        function updateMeasurementDisplay(text) {
+            document.querySelector('#measurement-result .value').textContent = text;
         }
 
         // ===== QUICK MEASURE MODE =====
@@ -982,13 +1099,7 @@
                     y: e.clientY - rect.top
                 };
 
-                // Update or add second point preview
-                if (state.quick.points.length === 1) {
-                    state.quick.points[1] = point;
-                } else {
-                    state.quick.points[1] = point;
-                }
-
+                state.quick.points[1] = point;
                 drawQuickMeasure();
             });
 
@@ -1007,15 +1118,12 @@
 
             document.getElementById('btn-reset-quick').addEventListener('click', () => {
                 state.quick.points = [];
-                document.querySelector('#quick-canvas').nextElementSibling.style.display = 'none';
+                const resultDiv = document.querySelector('.quick-measure-result');
+                if (resultDiv) {
+                    resultDiv.style.display = 'none';
+                }
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             });
-
-            // Load saved scale
-            const savedScale = localStorage.getItem('curvimeter-quick-scale');
-            const savedUnit = localStorage.getItem('curvimeter-quick-unit');
-            if (savedScale) state.quick.scale = parseFloat(savedScale);
-            if (savedUnit) state.quick.unit = savedUnit;
         }
 
         function drawQuickMeasure() {
@@ -1033,7 +1141,6 @@
                 if (state.quick.points.length > 1) {
                     const p2 = state.quick.points[1];
                     
-                    // Line
                     ctx.strokeStyle = 'rgba(0, 212, 255, 0.6)';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
@@ -1041,13 +1148,11 @@
                     ctx.lineTo(p2.x, p2.y);
                     ctx.stroke();
 
-                    // Second point
                     ctx.fillStyle = 'rgba(0, 212, 255, 0.8)';
                     ctx.beginPath();
                     ctx.arc(p2.x, p2.y, 8, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Distance label
                     const pixels = distance(p1, p2);
                     const meters = pixelsToMeters(pixels, state.quick.scale, state.quick.unit);
                     const formatted = formatDistance(meters);
@@ -1084,6 +1189,11 @@
         // ===== MODAL MANAGEMENT =====
         function openModal(id) {
             document.getElementById(id).classList.add('open');
+            // Focus first button in modal
+            const firstButton = document.querySelector(`#${id} .btn`);
+            if (firstButton) {
+                setTimeout(() => firstButton.focus(), 100);
+            }
         }
 
         function closeModal(id) {
@@ -1118,10 +1228,21 @@
             }
         });
 
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal('modal-info');
+            }
+        });
+
         // ===== INITIALIZATION =====
         function init() {
             applyTheme(state.theme);
             initDigitalMap();
+            
+            // Initially disable camera measurement buttons
+            document.getElementById('btn-add-point').disabled = true;
+            document.getElementById('btn-finish-measure').disabled = true;
             
             // Announce to screen readers
             const announce = document.createElement('div');
